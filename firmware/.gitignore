@@ -1,0 +1,6 @@
+*.o
+*.elf
+*.img
+*.map
+
+up3_firmware
