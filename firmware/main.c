@@ -22,7 +22,7 @@ uint8_t glUsbInterface = 0;             /* Active USB interface.                
 uint8_t *glSelBuffer = 0;               /* Buffer to hold SEL values.           */
 
 CyBool_t glIsApplnActive = CyFalse;     /* Whether the loopback application is active or not. */
-uint16_t glBufSize = 0;
+extern rdwr_cmd_t gRdwrCmd;
 
 /* Application Error Handler */
 void CyFxAppErrorHandler (CyU3PReturnStatus_t apiRetStatus) {
@@ -92,19 +92,19 @@ void CyFxNitroApplnStart (void) {
   log_debug("UsbSpeed: %d\n", usbSpeed);
   switch (usbSpeed) {
   case CY_U3P_FULL_SPEED:
-    glBufSize = 64;
+    gRdwrCmd.ep_buffer_size = 64;
     break;
 
   case CY_U3P_HIGH_SPEED:
-    glBufSize = 512;
+    gRdwrCmd.ep_buffer_size = 512;
     break;
 
   case  CY_U3P_SUPER_SPEED:
-    glBufSize = 1024;
+    gRdwrCmd.ep_buffer_size = 1024;
     break;
 
   default:
-    glBufSize = 0;
+    gRdwrCmd.ep_buffer_size = 0;
     log_error("Error! Invalid USB speed.\n");
     CyFxAppErrorHandler (CY_U3P_ERROR_FAILURE);
     break;
@@ -596,7 +596,7 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
     uint8_t  bType, bTarget;
     uint16_t wValue, wIndex, wLength;
     
-    CyU3PDebugPrint(LOG_DEBUG, "Entering CyFxNitroApplnUSBSetupCB()\n");
+    //CyU3PDebugPrint(LOG_DEBUG, "Entering CyFxNitroApplnUSBSetupCB()\n");
     
 
     /* Decode the fields from the setup request. */
@@ -608,14 +608,14 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
     wIndex   = ((setupdat1 & CY_U3P_USB_INDEX_MASK)   >> CY_U3P_USB_INDEX_POS);
     wLength  = ((setupdat1 & CY_U3P_USB_LENGTH_MASK)  >> CY_U3P_USB_LENGTH_POS);
     
-    log_debug("Setup Command Received:\n");
-    log_debug("  bReqType : 0x%x\n", bReqType);
-    log_debug("  bType    : 0x%x\n", bType);
-    log_debug("  bTarget  : 0x%x\n", bTarget);
-    log_debug("  bRequest : 0x%x\n", bRequest);
-    log_debug("  wValue   : 0x%x\n", wValue);
-    log_debug("  wIndex   : 0x%x\n", wIndex);
-    log_debug("  wLength  : 0x%x\n", wLength);
+    //log_debug("Setup Command Received:\n");
+    //log_debug("  bReqType : 0x%x\n", bReqType);
+    //log_debug("  bType    : 0x%x\n", bType);
+    //log_debug("  bTarget  : 0x%x\n", bTarget);
+    //log_debug("  bRequest : 0x%x\n", bRequest);
+    //log_debug("  wValue   : 0x%x\n", wValue);
+    //log_debug("  wIndex   : 0x%x\n", wIndex);
+    //log_debug("  wLength  : 0x%x\n", wLength);
 
     switch (bType) {
     case CY_U3P_USB_STANDARD_RQT:
@@ -634,9 +634,9 @@ void CyFxNitroApplnUSBEventCB (
     CyU3PUsbEventType_t evtype, /* Event type */
     uint16_t            evdata  /* Event data */
     ) {
-  log_debug("Entering CyFxNitroApplnUSBEventCB\n");
-  log_debug("  evtype  : 0x%x\n", evtype);
-  log_debug("  evtdata : 0x%x\n", evdata);
+//  log_debug("Entering CyFxNitroApplnUSBEventCB\n");
+//  log_debug("  evtype  : 0x%x\n", evtype);
+//  log_debug("  evtdata : 0x%x\n", evdata);
   switch (evtype) {
   case CY_U3P_USB_EVENT_RESET:
   case CY_U3P_USB_EVENT_DISCONNECT:
@@ -670,7 +670,7 @@ void CyFxNitroApplnInit (void) {
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
   CyBool_t no_renum = CyFalse;
 
-  CyU3PDebugPrint(LOG_DEBUG, "Entering CyFxNitroApplnInit\n");
+  log_debug("Entering CyFxNitroApplnInit\n");
 
   /* Start the USB functionality. */
   apiRetStatus = CyU3PUsbStart();
@@ -721,8 +721,8 @@ void NitroAppThread_Entry (uint32_t input) {
   /* Initialize the bulk loop application */
   CyFxNitroApplnInit();
 
-  CyU3PDebugPrint(LOG_DEBUG, "Started\n");
   for (;;) {
+    //handler_loop();
     CyU3PThreadSleep (1000);
   }
 }

@@ -5,7 +5,6 @@ SOURCE_ASM = cyfx_gcc_startup.S
 SOURCE  = cyfxtx.c
 SOURCE += dscr.c 
 SOURCE += vc_handler.c
-SOURCE += handlers/dummy_terminal.c
 SOURCE += main.c 
 
 C_OBJECT=$(SOURCE:%.c=./%.o)

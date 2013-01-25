@@ -110,4 +110,19 @@ VC_SERIAL=0xb6
 
 };
 
+#define ACK_PKT_ID 0xA50F
+typedef struct {
+  uint16_t id;
+  uint16_t checksum;
+  uint16_t status;
+  uint16_t reserved;
+}
+#ifdef __GNUC__
+ __attribute__((__packed__))
+#endif
+ack_pkt_t;
+
+
+#define LITTLE_ENDIAN_16(x) ((((uint16_t) (x))<<8) | (((uint16_t) (x)) >> 8))
+
 #endif
