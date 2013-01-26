@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2009 Ubixum, Inc. 
+ * Copyright (C) 2013 BrooksEE, LLC.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -46,34 +46,27 @@ typedef void (*io_handler_boot_func)(uint16_t);
 
 /**
  *
- * READ handlers: void read_handler(uint16_t length);
- *  length is the number of maximum number of bytes that can be read from the
- *  terminal/register into the read endpoint (EP6FIFOBUF).  After reading bytes
- *  into the endpoint, rdwr_data.bytes_avail should contains the number of bytes
- *  in the endpoint.  The endpoint is then committed with the corresponding byte
- *  count and available for the Host to read.  A read handler need not read all
- *  the bytes into the endpoint.  Handlers should not block.  If no bytes are
- *  read, the 0 length packets are not committed.  Read handlers should NOT 
- *  commit the packets.
+ * READ handlers: uint16_t read_handler(CyU3PDmaBuffer_t *buf_p);
+ *  Implements the read function of the handler. Puts data in in buf_p.
+ *  Handlers should be capable of waiting forever.
  *
- *  Currently, read/write handlers should not be NULL.  The dummy terminal
- *  handlers can be used in place of a null read or write handler when reading
- *  or writing from the terminal is not supported.
+ *  Leave null to have this return dummy data.
  **/
-typedef void (*io_handler_read_func)(uint16_t);
+typedef uint16_t (*io_handler_read_func)(CyU3PDmaBuffer_t *);
 
 /**
- * WRITE handlers: uint16_t write_handler():
+ * WRITE handlers: uint16_t write_handler(CyU3PDmaBuffer_t *buf_p):
  *  The number of bytes available in the write buffer (EP2FIFOBUF) are stored in
  *  rdwr_data.bytes_avail.  The write_handler must handle the available bytes
  *  without blocking. The handler can return FALSE instead of TRUE to allow
  *  another pass at the same data if the write call would block.
  *  
- *  \return BOOL return TRUE to indicate that the data has been written o
- *      FALSE to have the same data available to process the next time the
- *      function is called.
+ *  \return uint16_t: status code that gets OR'd with all other statuses
+ *      and returned as part of the ack packet. 0 means success.
+ * 
+ *  Leave null to write dummy data.
  **/
-typedef void (*io_handler_write_func)();
+typedef uint16_t (*io_handler_write_func)(CyU3PDmaBuffer_t *);
 
 
 /**
@@ -86,7 +79,7 @@ typedef void (*io_handler_write_func)();
  *  case: init handler is connected to device that is not configured properly
  *  result: return false to data read/write is not attempted to device.  
  **/
-typedef void (*io_handler_init_func)();
+typedef uint16_t (*io_handler_init_func)();
 
 /**
  * Optional code to run after a read/write transaction.  This function should
@@ -117,16 +110,18 @@ typedef uint16_t (*io_handler_status_func)();
  **/
 typedef uint16_t (*io_handler_chksum_func)();
 
+enum {
+  HANDLER_TYPE_TERMINATOR = 0, // indicates end of io_handler list
+  HANDLER_TYPE_CPU,
+  HANLDER_TYPE_SLAVE_FIFO
+} handler_type_t;
 
 /**
  *  rdwr vendor command handles a NULL-terminated array of these structures 
  *  when setting up the read/write transfer.
  **/
-struct io_handler_struct;
-typedef struct io_handler_struct io_handler_t;
-
-struct io_handler_struct {
-  io_handler_t *next;
+typedef struct {
+  uint8_t type;
   uint16_t term_addr;
   io_handler_boot_func boot_handler;
   io_handler_init_func init_handler;
@@ -135,20 +130,13 @@ struct io_handler_struct {
   io_handler_status_func status_handler;
   io_handler_chksum_func chksum_handler;
   io_handler_uninit_func uninit_handler;
-};
-
-typedef struct {
-  io_handler_t *head;
-  io_handler_t *tail;
-  io_handler_t *default_handler;
-} io_handlers_t;
-
+} io_handler_t;
 
 /**
  * Individual firmare must define an array of 
  * handlers for the firmware to use when rdwr requests are received.
  **/
-//extern io_handler __code io_handlers[];
+extern io_handler_t io_handlers[];
 
 /**
  * For ease, this macro can help add handlers.  This macro 
@@ -162,14 +150,18 @@ typedef struct {
  *          DECLARE_SOMEHANDLER,
  *          DECLARE_ANOTHERHANDLER,... };
  **/
-#define DECLARE_HANDLER(term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func) \
- {term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func} 
+#define DECLARE_HANDLER(type, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func) \
+  {type, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func} 
 
 /**
  *  io_handlers must be null terminated.  If you don't have an address 0 terminator
  *  as the last handler, you can use the NULL handler
  **/
-#define DECLARE_NULL_HANDLER \
-    DECLARE_HANDLER(0,0,0,0,0,0,0,0)
+#define DECLARE_TERMINATOR \
+  DECLARE_HANDLER(HANDLER_TYPE_TERMINATOR,0,0,0,0,0,0,0,0)
+
+#define DECLARE_DUMMY_HANDLER(TERM_ADDR) \
+  DECLARE_HANDLER(HANDLER_TYPE_CPU,TERM_ADDR,0,0,0,0,0,0,0)
 
 #endif
+

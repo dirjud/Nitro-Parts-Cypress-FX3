@@ -4,7 +4,10 @@ MODULE = main
 SOURCE_ASM = cyfx_gcc_startup.S
 SOURCE  = cyfxtx.c
 SOURCE += dscr.c 
-SOURCE += vc_handler.c
+SOURCE += error_handler.c
+SOURCE += cpu_handler.c
+SOURCE += rdwr.c
+SOURCE += handlers.c
 SOURCE += main.c 
 
 C_OBJECT=$(SOURCE:%.c=./%.o)

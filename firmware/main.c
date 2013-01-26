@@ -10,7 +10,8 @@
 #include "cyu3usb.h"
 #include "cyu3uart.h"
 #include "log.h"
-#include "vc_handler.h"
+#include "rdwr.h"
+#include "error_handler.h"
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PDmaChannel glChHandleNitro;       /* DMA Channel handle */
@@ -24,16 +25,6 @@ uint8_t *glSelBuffer = 0;               /* Buffer to hold SEL values.           
 CyBool_t glIsApplnActive = CyFalse;     /* Whether the loopback application is active or not. */
 extern rdwr_cmd_t gRdwrCmd;
 
-/* Application Error Handler */
-void CyFxAppErrorHandler (CyU3PReturnStatus_t apiRetStatus) {
-  /* Application failed with the error code apiRetStatus */
-  /* Add custom debug or recovery actions here */
-  /* Loop Indefinitely */
-  for (;;) {
-    /* Thread sleep : 100 ms */
-    CyU3PThreadSleep (100);
-  }
-}
 
 /* This function initializes the debug module. The debug prints
  * are routed to the UART and can be seen using a UART console
@@ -46,7 +37,7 @@ void CyFxNitroApplnDebugInit (void) {
   apiRetStatus = CyU3PUartInit();
   if (apiRetStatus != CY_U3P_SUCCESS) {
     /* Error handling */
-    CyFxAppErrorHandler(apiRetStatus);
+    error_handler(apiRetStatus);
   }
 
   /* Set UART configuration */
@@ -61,19 +52,19 @@ void CyFxNitroApplnDebugInit (void) {
   
   apiRetStatus = CyU3PUartSetConfig (&uartConfig, NULL);
   if (apiRetStatus != CY_U3P_SUCCESS) {
-    CyFxAppErrorHandler(apiRetStatus);
+    error_handler(apiRetStatus);
   }
 
   /* Set the UART transfer to a really large value. */
   apiRetStatus = CyU3PUartTxSetBlockXfer (0xFFFFFFFF);
   if (apiRetStatus != CY_U3P_SUCCESS) {
-    CyFxAppErrorHandler(apiRetStatus);
+    error_handler(apiRetStatus);
   }
 
   /* Initialize the debug module. */
   apiRetStatus = CyU3PDebugInit (CY_U3P_LPP_SOCKET_UART_CONS, 8);
   if (apiRetStatus != CY_U3P_SUCCESS) {
-    CyFxAppErrorHandler(apiRetStatus);
+    error_handler(apiRetStatus);
   }
   CyU3PDebugPreamble(CyFalse);
   CyU3PDebugEnable(0xFFFF);
@@ -106,7 +97,7 @@ void CyFxNitroApplnStart (void) {
   default:
     gRdwrCmd.ep_buffer_size = 0;
     log_error("Error! Invalid USB speed.\n");
-    CyFxAppErrorHandler (CY_U3P_ERROR_FAILURE);
+    error_handler (CY_U3P_ERROR_FAILURE);
     break;
   }
 
@@ -115,20 +106,20 @@ void CyFxNitroApplnStart (void) {
   epCfg.epType = CY_U3P_USB_EP_BULK;
   epCfg.burstLen = 1;
   epCfg.streams = 0;
-  epCfg.pcktSize = glBufSize;
+  epCfg.pcktSize = gRdwrCmd.ep_buffer_size;
   
   /* Producer endpoint configuration */
   apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_PRODUCER, &epCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
-    CyFxAppErrorHandler(apiRetStatus);
+    error_handler(apiRetStatus);
   }
 
   /* Consumer endpoint configuration */
   apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_CONSUMER, &epCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
-    CyFxAppErrorHandler (apiRetStatus);
+    error_handler (apiRetStatus);
   }
 
   /* Flush the Endpoint memory */
@@ -156,7 +147,7 @@ void CyFxNitroApplnStop (void) {
   glIsApplnActive = CyFalse;
 
   // clean up DMA channels and anything left by current event handler
-  stopEventHandler(); 
+  rdwr_teardown(); 
 
   /* Flush the endpoint memory */
   CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
@@ -170,14 +161,14 @@ void CyFxNitroApplnStop (void) {
   apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_PRODUCER, &epCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
-    CyFxAppErrorHandler (apiRetStatus);
+    error_handler (apiRetStatus);
   }
 
   /* Consumer endpoint configuration. */
   apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_CONSUMER, &epCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
-    CyFxAppErrorHandler (apiRetStatus);
+    error_handler (apiRetStatus);
   }
 }
 
@@ -678,7 +669,7 @@ void CyFxNitroApplnInit (void) {
     no_renum = CyTrue;
   } else if (apiRetStatus != CY_U3P_SUCCESS) {
     CyU3PDebugPrint (LOG_ERROR, "CyU3PUsbStart failed to Start, Error code = %d\n", apiRetStatus);
-    CyFxAppErrorHandler(apiRetStatus);
+    error_handler(apiRetStatus);
   }
 
   /* Allocate a buffer to hold the SEL (System Exit Latency) values set by the host. */
@@ -702,7 +693,7 @@ void CyFxNitroApplnInit (void) {
     apiRetStatus = CyU3PConnectState(CyTrue, CyTrue);
     if (apiRetStatus != CY_U3P_SUCCESS) {
       CyU3PDebugPrint (LOG_ERROR, "USB Connect failed, Error code = %d\n", apiRetStatus);
-      CyFxAppErrorHandler(apiRetStatus);
+      error_handler(apiRetStatus);
     }
   } else {
     /* USB connection is already active. Start the app again. */
@@ -802,8 +793,6 @@ int main (void) {
     goto handle_fatal_error;
   }
 
-  initHandlers();
-  
   /* This is a non returnable call for initializing the RTOS kernel */
   CyU3PKernelEntry ();
 
