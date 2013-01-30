@@ -8,6 +8,7 @@ SOURCE += error_handler.c
 SOURCE += cpu_handler.c
 SOURCE += rdwr.c
 SOURCE += handlers.c
+SOURCE += ../../../Microchip/M24XX/fx3/m24xx.c
 SOURCE += main.c 
 
 C_OBJECT=$(SOURCE:%.c=./%.o)
@@ -15,7 +16,7 @@ A_OBJECT=$(SOURCE_ASM:%.S=./%.o)
 EXES = $(MODULE).$(EXEEXT)
 
 # the common include path
-Include	=-Iu3p_firmware/inc -I.
+Include	=-Iu3p_firmware/inc -I. -I../../../Microchip/M24XX/fx3
 
 # the common compiler options
 CCFLAGS	= -g -O0		\
@@ -61,7 +62,7 @@ BDLIB		= $(AR) -r $@ $+
 ELF2IMG         = ../tools/elf2img/elf2img
 GEN_IMAGE       = $(ELF2IMG)  -i $< -o $@ -imgtype 0xB0
 
-all:compile
+all:fx3_terminals.h compile
 
 ELF2IMG:
 	make -C ../tools/elf2img
@@ -87,3 +88,6 @@ clean:
 	rm -f ./*.o
 
 compile: $(C_OBJECT) $(A_OBJECT) $(EXES) $(MODULE).img
+
+fx3_terminals.h: ../terminals.py
+	di --header $@ $<

@@ -6,12 +6,14 @@
 #include "cyu3os.h"
 #include "cyu3dma.h"
 #include "cyu3error.h"
+#include "cyu3i2c.h"
 #include "main.h"
 #include "cyu3usb.h"
 #include "cyu3uart.h"
 #include "log.h"
 #include "rdwr.h"
 #include "error_handler.h"
+
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PDmaChannel glChHandleNitro;       /* DMA Channel handle */
@@ -24,6 +26,33 @@ uint8_t *glSelBuffer = 0;               /* Buffer to hold SEL values.           
 
 CyBool_t glIsApplnActive = CyFalse;     /* Whether the loopback application is active or not. */
 extern rdwr_cmd_t gRdwrCmd;
+
+void init_i2c() {
+  CyU3PI2cConfig_t i2cConfig;
+  CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+
+  /* Initialize and configure the I2C master module. */
+  status = CyU3PI2cInit ();
+  if (status != CY_U3P_SUCCESS) {
+    log_error("Error initializing I2C: %d\n", status);
+    return;
+  }
+
+  /* Start the I2C master block. The bit rate is set at 400KHz.
+   * The data transfer is done via DMA. */
+  CyU3PMemSet ((uint8_t *)&i2cConfig, 0, sizeof(i2cConfig));
+  i2cConfig.bitRate    = 400000;  // 400KHz
+  i2cConfig.busTimeout = 0xFFFFFFFF; // no timeout
+  i2cConfig.dmaTimeout = 0xFFFF;
+  i2cConfig.isDma      = CyFalse; // not a dma
+  
+  status = CyU3PI2cSetConfig (&i2cConfig, NULL);
+  if (status != CY_U3P_SUCCESS) {
+    log_error("Error setting I2C config: %d\n", status);
+    return;
+  }
+}
+
 
 
 /* This function initializes the debug module. The debug prints
@@ -708,6 +737,7 @@ void CyFxNitroApplnInit (void) {
 void NitroAppThread_Entry (uint32_t input) {
   /* Initialize the debug module */
   CyFxNitroApplnDebugInit();
+  init_i2c();
 
   /* Initialize the bulk loop application */
   CyFxNitroApplnInit();
@@ -779,7 +809,7 @@ int main (void) {
    * UART_ONLY. Here we are choosing UART_ONLY configuration. */
   io_cfg.isDQ32Bit = CyFalse;
   io_cfg.useUart   = CyTrue;
-  io_cfg.useI2C    = CyFalse;
+  io_cfg.useI2C    = CyTrue;
   io_cfg.useI2S    = CyFalse;
   io_cfg.useSpi    = CyFalse;
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_UART_ONLY;

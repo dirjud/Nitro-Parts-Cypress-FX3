@@ -19,26 +19,26 @@
 import nitro
 from nitro import DeviceInterface, Terminal, Register, SubReg
 
-#prom_di = nitro.load_di ( "Microchip/M24XX/M24XX.xml" )
-#fx2_prom_term = prom_di['M24XX'].clone()
-#fx2_prom_term.name = 'FX2_PROM'
-#fx2_prom_term.add_child ( 
-#    Register ( 
-#        name='serialnum',
-#        addr=0x10000-16, # place serial number at last 16 bytes of eeprom (stored as unicode (16 bit) on prom for device descriptor compat.
-#        comment="Location of serial number stored on eeprom.",
-#        mode="write",
-#        width=16, # unicode characters 
-#        array=8) ) # 8 characters (str type not implemented yet)
+prom_di = nitro.load_di ( "Microchip/M24XX/M24XX.xml" )
+fx3_prom_term = prom_di['M24XX'].clone()
+fx3_prom_term.name = 'FX3_PROM'
+fx3_prom_term.addr = 0x50
+fx3_prom_term.add_child ( 
+    Register ( 
+        name='serialnum',
+        addr=0x20000-16, # place serial number at last 16 bytes of eeprom (stored as unicode (16 bit) on prom for device descriptor compat.
+        comment="Location of serial number stored on eeprom.",
+        mode="write",
+        width=16, # unicode characters 
+        array=8) ) # 8 characters (str type not implemented yet)
 
 
 di=DeviceInterface(
     name="Cy7C68013",
     terminal_list=[ 
-
         Terminal(
             name='FX3',
-            comment='Special FX2 functions.  This terminal also gets and sets memory data in the FX2 e600-fdff range.  (Note this does not work with reads, only get/set)', 
+            comment='Special FX3 functions.  This terminal also gets and sets memory data in the FX3 e600-fdff range.  (Note this does not work with reads, only get/set)', 
             addr=0x100,
             regAddrWidth=16,
             regDataWidth=16,
@@ -68,7 +68,7 @@ di=DeviceInterface(
 
         Terminal(
             name='FX3_SFR',
-            comment='Access to FX2 Special function registers.  The register address is the special function register address.', 
+            comment='Access to FX3 Special function registers.  The register address is the special function register address.', 
             addr=0x101,
             regAddrWidth=16,
             regDataWidth=16,
@@ -385,7 +385,7 @@ di=DeviceInterface(
                          ),
                 ],
              ),
-#             fx2_prom_term
+             fx3_prom_term
      ]
 )
 

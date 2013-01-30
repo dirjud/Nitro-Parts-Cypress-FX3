@@ -18,13 +18,13 @@ void cpu_handler_read() {
   CyU3PDmaBuffer_t buf_p;
   gAckPkt.status |= CyU3PDmaChannelGetBuffer(&glChHandleBulkSrc, &buf_p, CYU3P_NO_WAIT);
 
-  // Call the read handler if the read handler function exists and if the status
-  // is still OK.
+  buf_p.count = (gTransferedSoFar + buf_p.size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gTransferedSoFar : buf_p.size;
+
+  // Call the read handler if the read handler function exists and if
+  // the status is still OK. Otherwise, try continuing the data
+  // transfer with bogus data.
   if(gRdwrCmd.handler->read_handler && gAckPkt.status == 0) {
     gAckPkt.status |= gRdwrCmd.handler->read_handler(&buf_p);
-  } else {
-    // Otherwise, try continuing the data transfer with bogus data.
-    buf_p.count = (gTransferedSoFar + buf_p.size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gTransferedSoFar : buf_p.size;
   }
   gAckPkt.status |= CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p.count, 0);
   gTransferedSoFar += buf_p.count;
@@ -64,7 +64,7 @@ void cpu_handler_cmd_start() {
 
   // Call this handlers init function, if it exists
   if(gRdwrCmd.handler->init_handler) {
-    gRdwrCmd.handler->init_handler();
+    gAckPkt.status |= gRdwrCmd.handler->init_handler();
   }
 
   // If this is a read or get command, kick of the first packet read.

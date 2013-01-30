@@ -19,7 +19,7 @@
 
 #ifndef HANDLERS_H
 #define HANDLERS_H
-
+#include <cyu3system.h>
 #include "vendor_commands.h"
 
 /**
@@ -130,6 +130,7 @@ typedef struct {
   io_handler_status_func status_handler;
   io_handler_chksum_func chksum_handler;
   io_handler_uninit_func uninit_handler;
+  void *userdata;
 } io_handler_t;
 
 /**
@@ -150,18 +151,18 @@ extern io_handler_t io_handlers[];
  *          DECLARE_SOMEHANDLER,
  *          DECLARE_ANOTHERHANDLER,... };
  **/
-#define DECLARE_HANDLER(type, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func) \
-  {type, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func} 
+#define DECLARE_HANDLER(type, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func, user_data) \
+  {type, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func, (void *) user_data} 
 
 /**
  *  io_handlers must be null terminated.  If you don't have an address 0 terminator
  *  as the last handler, you can use the NULL handler
  **/
 #define DECLARE_TERMINATOR \
-  DECLARE_HANDLER(HANDLER_TYPE_TERMINATOR,0,0,0,0,0,0,0,0)
+  DECLARE_HANDLER(HANDLER_TYPE_TERMINATOR,0,0,0,0,0,0,0,0,0)
 
 #define DECLARE_DUMMY_HANDLER(TERM_ADDR) \
-  DECLARE_HANDLER(HANDLER_TYPE_CPU,TERM_ADDR,0,0,0,0,0,0,0)
+  DECLARE_HANDLER(HANDLER_TYPE_CPU,TERM_ADDR,0,0,0,0,0,0,0,0)
 
 #endif
 

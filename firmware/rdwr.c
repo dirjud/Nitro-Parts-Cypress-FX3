@@ -47,10 +47,12 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
     if(io_handlers[i].term_addr == gRdwrCmd.header.term_addr ||
        io_handlers[i].term_addr == 0) { 
       gRdwrCmd.handler = &(io_handlers[i]);
+      //log_debug("Found handler %d\n", i);
       break;
     }
+    i++;
   }
-
+  
   // if there is a previous handler, call the previous handler types
   // uninit function
   if(prev_handler) {
@@ -63,7 +65,8 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
 
   // If the handler type is changing, then we call the appropriate 
   // DMA channel tear down and setup functions.
-  if(gRdwrCmd.handler && (prev_handler == NULL || prev_handler->type != gRdwrCmd.handler->type)) {
+  if((gRdwrCmd.handler && (prev_handler == NULL || prev_handler->type != gRdwrCmd.handler->type)) ||
+     (prev_handler && (gRdwrCmd.handler == NULL || prev_handler->type != gRdwrCmd.handler->type))) {
     // first tear down previous handlers DMA channels
     if(prev_handler) {
       switch(prev_handler->type) {
@@ -78,14 +81,16 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
     }
 
     // now setup the new hanlder types DMA channels
-    switch(gRdwrCmd.handler->type) {
-    case HANDLER_TYPE_CPU:
-      cpu_handler_setup();
-      break;
-
-    default:
-      // do nothing by default
-      break;
+    if(gRdwrCmd.handler) {
+      switch(gRdwrCmd.handler->type) {
+      case HANDLER_TYPE_CPU:
+	cpu_handler_setup();
+	break;
+	
+      default:
+	// do nothing by default
+	break;
+      }
     }
   }
 
