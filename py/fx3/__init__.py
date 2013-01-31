@@ -1,6 +1,6 @@
 import time
 import nitro
-#from nitro_parts.Microchip.M24XX import program_fx2_prom 
+from nitro_parts.Microchip.M24XX import program_fx3_prom 
 import logging
 log=logging.getLogger(__name__)
 
@@ -34,11 +34,10 @@ def get_dev(di_file="Cypress/fx3/fx3.xml", serial_num=None, bus_addr=None, VID=0
                 
     if not(dev.is_open()):
         raise nitro.Exception("Could not open 0x%x:0x%x device" % (VID, PID))
-#    try:
-#        serial = dev.get_serial()
-#    except:
-#        serial = "UNKNOWN"
-    serial = "NOT IMPLEMENTED"
+    try:
+        serial = dev.get_serial()
+    except:
+        serial = "UNKNOWN"
     log.info("Opened 0x%x:0x%x device with serial number %s" % (VID, PID, serial))
 
     if(di_file):
@@ -54,33 +53,33 @@ def init_dev(dev, di_file="Cypress/fx3/fx3.xml"):
 
 def program_fx3(dev, filename):
     """
-        Program the fx2 with the firmware ihx file.  filename should be set to
-        the path of the ihx file.  This function causes the fx2 to reboot and
+        Program the fx3 with the firmware ihx file.  filename should be set to
+        the path of the ihx file.  This function causes the fx3 to reboot and
         renumerate with the USB bus.  The device is automatically closed and 
         must be re-opened after it has reconnected to the Host.
     """
-    log.info("Programming FX2 with iic file %s" % filename)
+    log.info("Programming FX3 with img file %s" % filename)
     f=open(filename,'rb').read()
 #    print type(dev)
 #    dev=nitro.USBDevice(dev) # ensure load_firmware available
     dev.load_firmware ( f )
     log.info ("Firmware loaded, device automatically closed." )
 
-def program_new_pcb(fx2_firmware, VID, PID, di_file, fx2_prom_term='FX2_PROM'):
+def program_new_pcb(fx3_firmware, VID, PID, di_file, fx3_prom_term='FX3_PROM'):
     """
         This function does not require an open device.  It looks
         for the 1st unprogrammed pcb (by using the default Cypress
-        Vendor ID/Product ID and attempts to load the fx2 firmware
+        Vendor ID/Product ID and attempts to load the fx3 firmware
         files specified.
 
-        :param fx2_firmware: The fx2 firmare ihx file. 
+        :param fx3_firmware: The fx3 firmare ihx file. 
         :param vendor id of firmware being loaded.
         :param product id of firmware being loaded.
         :param path to di file implemented by firmware.
     """
-    dev=nitro.USBDevice(0x04b4,0x8613)
+    dev=nitro.USBDevice(0x04b4,0xf300)
     dev.open(0,True)
-    program_fx2(dev,fx2_firmware)
+    program_fx3(dev,fx3_firmware)
     time.sleep(1)
 
     # 
@@ -90,6 +89,6 @@ def program_new_pcb(fx2_firmware, VID, PID, di_file, fx2_prom_term='FX2_PROM'):
     dev=nitro.USBDevice(VID, PID)
     dev.open()
     dev.set_di( nitro.load_di ( di_file ) )
-    program_fx2_prom(dev,fx2_firmware, fx2_prom_term)
+    program_fx3_prom(dev, fx3_firmware, fx3_prom_term)
     dev.close()
 

@@ -19,6 +19,7 @@ void cpu_handler_read() {
   gAckPkt.status |= CyU3PDmaChannelGetBuffer(&glChHandleBulkSrc, &buf_p, CYU3P_NO_WAIT);
 
   buf_p.count = (gTransferedSoFar + buf_p.size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gTransferedSoFar : buf_p.size;
+  log_debug("C %d\n", buf_p.count);
 
   // Call the read handler if the read handler function exists and if
   // the status is still OK. Otherwise, try continuing the data
@@ -28,7 +29,7 @@ void cpu_handler_read() {
   }
   gAckPkt.status |= CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p.count, 0);
   gTransferedSoFar += buf_p.count;
-  log_debug("READ %d/%d\n", gTransferedSoFar, gRdwrCmd.header.transfer_length);
+  log_debug("R %d/%d\n", gTransferedSoFar, gRdwrCmd.header.transfer_length);
 }
 
 void cpu_handler_write(CyU3PDmaBuffer_t *buf_p) {
@@ -127,10 +128,10 @@ void cpu_handler_setup(void) {
   /* Multiply the buffer size with the multiplier for performance
    * improvement. */
   dmaCfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
-  dmaCfg.count = CY_FX_BULKSRCSINK_DMA_BUF_COUNT;
+  dmaCfg.count     = 4;
   dmaCfg.prodSckId = CY_FX_EP_PRODUCER_SOCKET;
   dmaCfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
-  dmaCfg.dmaMode = CY_U3P_DMA_MODE_BYTE;
+  dmaCfg.dmaMode   = CY_U3P_DMA_MODE_BYTE;
   dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT | CY_U3P_DMA_CB_CONS_EVENT;
   dmaCfg.cb = cpu_handler_callback;
   dmaCfg.prodHeader = 0;
@@ -153,17 +154,15 @@ void cpu_handler_setup(void) {
     error_handler(apiRetStatus);
   }
 
-  /* Set DMA Channel transfer size */
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
+  /* Set DMA Channel transfer size to infinite */
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-    error_handler(apiRetStatus);
   }
 
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, CY_FX_BULKSRCSINK_DMA_TX_SIZE);
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-    error_handler(apiRetStatus);
   }
 }
 

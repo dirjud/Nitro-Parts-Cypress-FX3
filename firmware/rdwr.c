@@ -5,8 +5,12 @@
 #include "log.h"
 #include "cpu_handler.h"
 #include "main.h"
+#include "fx3_terminals.h"
+#include <cyu3i2c.h>
+#include <m24xx.h>
 
 rdwr_cmd_t gRdwrCmd;
+uint8_t gSerialNum[16];
 
 void rdwr_teardown() {
   if(gRdwrCmd.handler) {
@@ -33,6 +37,7 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   status = CyU3PUsbGetEP0Data(wLength, (uint8_t *) &(gRdwrCmd.header), 0);
   if(status != CY_U3P_SUCCESS){
     log_error("Error get EP0 Data\n", status);
+    log_error("FLush status = %d\n", CyU3PUsbFlushEp(0));
     return status;
   }
 
@@ -110,7 +115,79 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   return CY_U3P_SUCCESS;
 }
 
+/******************************************************************************/
+CyBool_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
+  CyU3PI2cPreamble_t preamble;
+  uint32_t reg_addr = FX3_PROM_SERIALNUM0_0;
+  uint8_t dev_addr = 0x50;
+  uint8_t size = 17; // size of prom
+  uint16_t status;
 
+  if (wLength != 16) {
+    log_error("Bad length=%d \n", wLength);
+    return CY_U3P_ERROR_BAD_ARGUMENT;
+  }
+
+  switch(bReqType) {
+  case 0xC0:
+    preamble.length    = 4;
+    preamble.buffer[0] = m24xx_get_dev_addr(dev_addr, reg_addr, size, 0);
+    preamble.buffer[1] = (uint8_t)(reg_addr >> 8);
+    preamble.buffer[2] = (uint8_t)(reg_addr & 0xFF);
+    preamble.buffer[3] = m24xx_get_dev_addr(dev_addr, reg_addr, size, 1);
+    preamble.ctrlMask  = 0x0004;
+    status = CyU3PI2cReceiveBytes (&preamble, gSerialNum, 16, 1);
+    if(status) {
+      log_error("Error reading serial num from prom (%d)\n", status);
+      return CyFalse;
+    }
+    status = CyU3PUsbSendEP0Data(16, gSerialNum);
+    if(status) {
+      log_error("Error Sending serial num to EP0 (%d)\n", status);
+      return CyFalse;
+    }
+    return CyTrue;
+
+  case 0x40:
+    status = CyU3PUsbGetEP0Data(wLength, gSerialNum, 0);
+    if(status) {
+      log_error("Error getting serial num from EP0 (%d)\n", status);
+      return status;
+    }
+
+    preamble.length    = 3;
+    preamble.buffer[0] = m24xx_get_dev_addr(dev_addr, reg_addr, size, 0);
+    preamble.buffer[1] = (uint8_t)(reg_addr >> 8);
+    preamble.buffer[2] = (uint8_t)(reg_addr & 0xFF);
+    preamble.ctrlMask  = 0x0000;
+    
+    status = CyU3PI2cTransmitBytes(&preamble, gSerialNum, 16, 1);
+    if(status) {
+      log_error("Error writing serial num to I2C (%d)\n", status);
+      return CyFalse;
+    }
+    
+    /* Wait for the write to complete. */
+    preamble.length = 1;
+    status = CyU3PI2cWaitForAck(&preamble, 200);
+    if(status) {
+      log_error("Error waiting for i2c ACK after writing serial num (%d)\n", status);
+      return CyFalse;
+    }
+    
+    /* An additional delay seems to be required after receiving an ACK. */
+    CyU3PThreadSleep (1);
+    return CyTrue;
+
+
+  default:
+    log_error("Bad ReqType=%d \n", bReqType);
+    return CY_U3P_ERROR_BAD_ARGUMENT;
+  }
+}
+
+
+/******************************************************************************/
 CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
 			   uint8_t  bType, uint8_t bTarget,
 			   uint16_t wValue, uint16_t wIndex, 
@@ -124,6 +201,10 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
   switch (bRequest) {
   case VC_HI_RDWR:
     status = handle_rdwr(bReqType, wLength);
+    break;
+
+  case VC_SERIAL:
+    status = handle_serial_num(bReqType, wLength);
     break;
 
 //  case VC_RDWR_RAM:

@@ -2,9 +2,6 @@
 #define __CPU_HANDLER_H__
 
 
-#define CY_FX_BULKSRCSINK_DMA_BUF_COUNT      (4) /* Bulk channel buffer count */
-#define CY_FX_BULKSRCSINK_DMA_TX_SIZE        (0) /* DMA transfr size infinite */
-#define CY_FX_BULKSRCSINK_PATTERN            (0xAA) /* 8-bit pattern to be loaded to the source buffers. */
 
 /* Multiplication factor used when allocating DMA buffers to reduce
    DMA callback frequency. */
