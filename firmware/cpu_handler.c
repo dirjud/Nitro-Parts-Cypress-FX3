@@ -18,8 +18,8 @@ void cpu_handler_read() {
   CyU3PDmaBuffer_t buf_p;
   gAckPkt.status |= CyU3PDmaChannelGetBuffer(&glChHandleBulkSrc, &buf_p, CYU3P_NO_WAIT);
 
+  log_debug("C %d\n", buf_p.size);
   buf_p.count = (gTransferedSoFar + buf_p.size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gTransferedSoFar : buf_p.size;
-  log_debug("C %d\n", buf_p.count);
 
   // Call the read handler if the read handler function exists and if
   // the status is still OK. Otherwise, try continuing the data

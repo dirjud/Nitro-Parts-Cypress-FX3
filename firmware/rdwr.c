@@ -197,7 +197,7 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
   CyBool_t isHandled = CyTrue;
   CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
-  
+  log_debug("VC%x\n", bRequest);
   switch (bRequest) {
   case VC_HI_RDWR:
     status = handle_rdwr(bReqType, wLength);
@@ -222,7 +222,7 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
     CyU3PUsbStall (0, CyTrue, CyFalse);
   } else {
     //log_debug("VC Acked\n");
-//    CyU3PUsbAckSetup ();
+    CyU3PUsbAckSetup ();
   }
 
   return CyTrue;

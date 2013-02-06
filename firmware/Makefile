@@ -60,7 +60,7 @@ ASSEMBLE	= $(AS) $(ASMFLAGS) -o $@ $<
 LINK		= $(LD) $+ $(LDFLAGS) -o $@
 BDLIB		= $(AR) -r $@ $+
 ELF2IMG         = ../tools/elf2img/elf2img
-GEN_IMAGE       = $(ELF2IMG)  -i $< -o $@ -imgtype 0xB0
+GEN_IMAGE       = $(ELF2IMG)  -i $< -o $@ -imgtype 0xB0 -i2cconf 0x1E
 
 all:fx3_terminals.h compile
 
