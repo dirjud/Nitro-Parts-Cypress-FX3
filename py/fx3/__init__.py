@@ -35,6 +35,7 @@ def get_dev(di_file="Cypress/fx3/fx3.xml", serial_num=None, bus_addr=None, VID=0
     if not(dev.is_open()):
         raise nitro.Exception("Could not open 0x%x:0x%x device" % (VID, PID))
     try:
+        raise Exception("")
         serial = dev.get_serial()
     except:
         serial = "UNKNOWN"

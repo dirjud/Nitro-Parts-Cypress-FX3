@@ -13,7 +13,8 @@
 #include "log.h"
 #include "rdwr.h"
 #include "error_handler.h"
-
+#include "cyu3gpio.h"
+#include "slfifo_handler.h"
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PDmaChannel glChHandleNitro;       /* DMA Channel handle */
@@ -52,7 +53,71 @@ void init_i2c() {
     return;
   }
 }
+void gpio_interrupt (uint8_t gpioId /* Indicates the pin that triggered the interrupt */ ) {
 
+}
+
+void init_gpio (void) {
+    CyU3PGpioClock_t gpioClock;
+    CyU3PGpioSimpleConfig_t gpioConfig;
+    CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
+
+    /* Init the GPIO module */
+    gpioClock.fastClkDiv = 2;
+    gpioClock.slowClkDiv = 0;
+    gpioClock.simpleDiv = CY_U3P_GPIO_SIMPLE_DIV_BY_2;
+    gpioClock.clkSrc = CY_U3P_SYS_CLK;
+    gpioClock.halfDiv = 0;
+
+    apiRetStatus = CyU3PGpioInit(&gpioClock, gpio_interrupt);
+    if (apiRetStatus != 0) {
+        /* Error Handling */
+      log_error("CyU3PGpioInit failed, error code = %d\n", apiRetStatus);
+      error_handler(apiRetStatus);
+    }
+
+//    /* Configure GPIO 45 as input with interrupt enabled for both edges */
+//    gpioConfig.outValue = CyTrue;
+//    gpioConfig.inputEn = CyTrue;
+//    gpioConfig.driveLowEn = CyFalse;
+//    gpioConfig.driveHighEn = CyFalse;
+//    gpioConfig.intrMode = CY_U3P_GPIO_INTR_BOTH_EDGE;
+//    apiRetStatus = CyU3PGpioSetSimpleConfig(45, &gpioConfig);
+//    if (apiRetStatus != CY_U3P_SUCCESS)
+//    {
+//        /* Error handling */
+//        CyU3PDebugPrint (4, "CyU3PGpioSetSimpleConfig failed, error code = %d\n",
+//                apiRetStatus);
+//        CyFxAppErrorHandler(apiRetStatus);
+//    }
+
+    /* Override GPIO 23 as this pin is associated with GPIF Control signal.
+     * The IO cannot be selected as GPIO by CyU3PDeviceConfigureIOMatrix call
+     * as it is part of the GPIF IOs. Override API call must be made with
+     * caution as this will change the functionality of the pin. If the IO
+     * line is used as part of GPIF and is connected to some external device,
+     * then the line will no longer behave as a GPIF IO.. Here CTL4 line is
+     * not used and so it is safe to override.  */
+    apiRetStatus = CyU3PDeviceGpioOverride (23, CyTrue);
+    if (apiRetStatus != 0) {
+        /* Error Handling */
+      log_error("CyU3PDeviceGpioOverride failed, code = %d\n", apiRetStatus);
+      error_handler(apiRetStatus);
+    }
+
+    /* Configure GPIO 23 as output */
+    gpioConfig.outValue    = CyFalse;
+    gpioConfig.driveLowEn  = CyTrue;
+    gpioConfig.driveHighEn = CyTrue;
+    gpioConfig.inputEn     = CyFalse;
+    gpioConfig.intrMode    = CY_U3P_GPIO_NO_INTR;
+    apiRetStatus = CyU3PGpioSetSimpleConfig(23, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+      /* Error handling */
+      log_error("CyU3PGpioSetSimpleConfig failed, code = %d\n", apiRetStatus);
+      error_handler(apiRetStatus);
+    }
+}
 
 
 /* This function initializes the debug module. The debug prints
@@ -160,6 +225,8 @@ void CyFxNitroApplnStart (void) {
 
   /* Drop current U1/U2 enable state values. */
   glUsbDeviceStat = 0;
+
+
 }
 
 /* This function stops the nitro application. This shall be called
@@ -692,6 +759,8 @@ void CyFxNitroApplnInit (void) {
 
   log_debug("Entering CyFxNitroApplnInit\n");
 
+  slfifo_init();
+
   /* Start the USB functionality. */
   apiRetStatus = CyU3PUsbStart();
   if (apiRetStatus == CY_U3P_ERROR_NO_REENUM_REQUIRED) {
@@ -738,13 +807,16 @@ void NitroAppThread_Entry (uint32_t input) {
   /* Initialize the debug module */
   CyFxNitroApplnDebugInit();
   init_i2c();
+  init_gpio();
 
   /* Initialize the bulk loop application */
   CyFxNitroApplnInit();
 
   for (;;) {
     //handler_loop();
-    CyU3PThreadSleep (1000);
+    CyU3PThreadSleep (1000); 
+//    CyU3PGpioSetValue (23, CyTrue);
+//    CyU3PGpioSetValue (23, CyFalse);
   }
 }
 
@@ -791,7 +863,7 @@ int main (void) {
   clockConfig.dmaClkDiv     = 2;
   clockConfig.mmioClkDiv    = 2;
   clockConfig.useStandbyClk = CyFalse;
-  clockConfig.clkSrc         = CY_U3P_SYS_CLK;
+  clockConfig.clkSrc        = CY_U3P_SYS_CLK;
   status = CyU3PDeviceInit (&clockConfig);
   if (status != CY_U3P_SUCCESS) {
     goto handle_fatal_error;
@@ -807,14 +879,14 @@ int main (void) {
    * COM port is connected to the IO(53:56). This means that either
    * DQ32 mode should be selected or lppMode should be set to
    * UART_ONLY. Here we are choosing UART_ONLY configuration. */
-  io_cfg.isDQ32Bit = CyFalse;
+  io_cfg.isDQ32Bit = CyTrue;
   io_cfg.useUart   = CyTrue;
   io_cfg.useI2C    = CyTrue;
   io_cfg.useI2S    = CyFalse;
   io_cfg.useSpi    = CyFalse;
-  io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_UART_ONLY;
+  io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
   /* No GPIOs are enabled. */
-  io_cfg.gpioSimpleEn[0]  = 0;
+  io_cfg.gpioSimpleEn[0]  = 1 << 23; // enable gpio[23]
   io_cfg.gpioSimpleEn[1]  = 0;
   io_cfg.gpioComplexEn[0] = 0;
   io_cfg.gpioComplexEn[1] = 0;

@@ -6,6 +6,7 @@ SOURCE  = cyfxtx.c
 SOURCE += dscr.c 
 SOURCE += error_handler.c
 SOURCE += cpu_handler.c
+SOURCE += slfifo_handler.c
 SOURCE += rdwr.c
 SOURCE += handlers.c
 SOURCE += ../../../Microchip/M24XX/fx3/m24xx.c
@@ -16,7 +17,7 @@ A_OBJECT=$(SOURCE_ASM:%.S=./%.o)
 EXES = $(MODULE).$(EXEEXT)
 
 # the common include path
-Include	=-Iu3p_firmware/inc -I. -I../../../Microchip/M24XX/fx3
+Include	=-Iu3p_firmware/inc -I. -I../../../Microchip/M24XX/fx3 -I../../../Xilinx/Spartan/fx3
 
 # the common compiler options
 CCFLAGS	= -g -O0		\

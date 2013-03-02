@@ -113,7 +113,7 @@ typedef uint16_t (*io_handler_chksum_func)();
 enum {
   HANDLER_TYPE_TERMINATOR = 0, // indicates end of io_handler list
   HANDLER_TYPE_CPU,
-  HANLDER_TYPE_SLAVE_FIFO
+  HANDLER_TYPE_SLAVE_FIFO
 } handler_type_t;
 
 /**

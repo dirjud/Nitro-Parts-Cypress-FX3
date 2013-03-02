@@ -50,6 +50,10 @@
 
 #define CY_FX_EP_PRODUCER_SOCKET        CY_U3P_UIB_SOCKET_PROD_1    /* Socket 1 is producer */
 #define CY_FX_EP_CONSUMER_SOCKET        CY_U3P_UIB_SOCKET_CONS_1    /* Socket 1 is consumer */
+/* Used with FX3 Silicon. */
+#define CY_FX_PRODUCER_PPORT_SOCKET    CY_U3P_PIB_SOCKET_0    /* P-port Socket 0 is producer */
+#define CY_FX_CONSUMER_PPORT_SOCKET    CY_U3P_PIB_SOCKET_3    /* P-port Socket 3 is consumer */
+#define CY_CPU_CONSUMER_PPORT_SOCKET   CY_U3P_PIB_SOCKET_2    /* P-port Socket 2 is consumer */
 
 /* Extern definitions for the USB Descriptors */
 extern const uint8_t CyFxUSB20DeviceDscr[];

@@ -4,6 +4,7 @@
 #include "rdwr.h"
 #include "log.h"
 #include "cpu_handler.h"
+#include "slfifo_handler.h"
 #include "main.h"
 #include "fx3_terminals.h"
 #include <cyu3i2c.h>
@@ -44,7 +45,7 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   gRdwrCmd.done    = 0;
   gRdwrCmd.handler = NULL;
 
-  // Select the appropriate handler. Any hanlder specified with term_addr of
+  // Select the appropriate handler. Any handler specified with term_addr of
   // 0 is considered the wild card handler and will prevent any handlers
   // following if from being accessed.
   int i = 0;
@@ -65,37 +66,42 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
     case HANDLER_TYPE_CPU:
       cpu_handler_cmd_end();
       break;
+    case HANDLER_TYPE_SLAVE_FIFO:
+      slfifo_cmd_end();
+      break;
     }
   }
 
-  // If the handler type is changing, then we call the appropriate 
-  // DMA channel tear down and setup functions.
-  if((gRdwrCmd.handler && (prev_handler == NULL || prev_handler->type != gRdwrCmd.handler->type)) ||
-     (prev_handler && (gRdwrCmd.handler == NULL || prev_handler->type != gRdwrCmd.handler->type))) {
-    // first tear down previous handlers DMA channels
-    if(prev_handler) {
-      switch(prev_handler->type) {
-      case HANDLER_TYPE_CPU:
-	cpu_handler_teardown();
-	break;
-
-      default:
-	// do nothing by default
-	break;
-      }
+  // first tear down previous handlers DMA channels
+  if(prev_handler && prev_handler != gRdwrCmd.handler) {
+    switch(prev_handler->type) {
+    case HANDLER_TYPE_CPU:
+      cpu_handler_teardown();
+      break;
+      
+    case HANDLER_TYPE_SLAVE_FIFO:
+      slfifo_teardown();
+      break;
+      
+    default:
+      // do nothing by default
+      break;
     }
+  }
+  // now setup the new handler types DMA channels
+  if(gRdwrCmd.handler) {
+    switch(gRdwrCmd.handler->type) {
+    case HANDLER_TYPE_CPU:
+      cpu_handler_setup();
+      break;
+      
+    case HANDLER_TYPE_SLAVE_FIFO:
+      slfifo_setup();
+      break;
 
-    // now setup the new hanlder types DMA channels
-    if(gRdwrCmd.handler) {
-      switch(gRdwrCmd.handler->type) {
-      case HANDLER_TYPE_CPU:
-	cpu_handler_setup();
-	break;
-	
-      default:
-	// do nothing by default
-	break;
-      }
+    default:
+      // do nothing by default
+      break;
     }
   }
 
@@ -108,6 +114,9 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
     switch(gRdwrCmd.handler->type) {
     case HANDLER_TYPE_CPU:
       cpu_handler_cmd_start();
+      break;
+    case HANDLER_TYPE_SLAVE_FIFO:
+      slfifo_cmd_start();
       break;
     }
   }
@@ -197,7 +206,7 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
   CyBool_t isHandled = CyTrue;
   CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
-  log_debug("VC%x\n", bRequest);
+  //  log_debug("VC%x\n", bRequest);
   switch (bRequest) {
   case VC_HI_RDWR:
     status = handle_rdwr(bReqType, wLength);

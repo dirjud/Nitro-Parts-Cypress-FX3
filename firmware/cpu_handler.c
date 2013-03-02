@@ -10,7 +10,7 @@
 CyU3PDmaChannel glChHandleBulkSink; /* DMA MANUAL_IN channel handle.  */
 CyU3PDmaChannel glChHandleBulkSrc;  /* DMA MANUAL_OUT channel handle. */
 uint32_t gTransferedSoFar;  // number of bytes handled/transfered already
-
+CyBool_t gCpuHandlerActive = CyFalse;
 extern rdwr_cmd_t gRdwrCmd;
 ack_pkt_t gAckPkt;
 
@@ -115,6 +115,10 @@ void cpu_handler_setup(void) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
+  if (gCpuHandlerActive) {
+    return;
+  }
+
   /* Create a DMA MANUAL_IN channel for the producer socket. */
   CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
 
@@ -164,6 +168,7 @@ void cpu_handler_setup(void) {
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
   }
+  gCpuHandlerActive = CyTrue;
 }
 
 /* This function tears down the DMA channels setup for CPU type handlers. */
@@ -171,4 +176,5 @@ void cpu_handler_teardown(void) {
   /* Destroy the channels */
   CyU3PDmaChannelDestroy (&glChHandleBulkSink);
   CyU3PDmaChannelDestroy (&glChHandleBulkSrc);
+  gCpuHandlerActive = CyFalse;
 }
