@@ -1,6 +1,6 @@
 /*
  * Project Name: slfifo.cyfx
- * Time : 02/26/2013 11:04:17
+ * Time : 03/07/2013 10:46:36
  * Device Type: FX3
  * Project Type: GPIF2
  *
@@ -82,7 +82,7 @@ uint8_t CyFxGpifWavedataPosition[]  = {
    GPIF II configuration register values.
  */
 uint32_t CyFxGpifRegValue[]  = {
-    0x80000380,  /*  CY_U3P_PIB_GPIF_CONFIG */
+    0x800003B0,  /*  CY_U3P_PIB_GPIF_CONFIG */
     0x000010AC,  /*  CY_U3P_PIB_GPIF_BUS_CONFIG */
     0x01070002,  /*  CY_U3P_PIB_GPIF_BUS_CONFIG2 */
     0x00000044,  /*  CY_U3P_PIB_GPIF_AD_CONFIG */

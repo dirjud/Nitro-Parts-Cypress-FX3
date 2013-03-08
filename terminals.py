@@ -37,6 +37,10 @@ di=DeviceInterface(
     name="Cy7C68013",
     terminal_list=[ 
         Terminal(
+            name="DUMMY_FPGA",
+            addr = 0x1,
+            ),
+        Terminal(
             name='FX3',
             comment='Special FX3 functions.  This terminal also gets and sets memory data in the FX3 e600-fdff range.  (Note this does not work with reads, only get/set)', 
             addr=0x100,
