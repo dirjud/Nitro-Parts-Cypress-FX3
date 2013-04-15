@@ -1,6 +1,5 @@
 #include "cpu_handler.h"
 #include <cyu3system.h>
-#include <cyu3error.h>
 #include <cyu3dma.h>
 #include "rdwr.h"
 #include "log.h"
@@ -111,12 +110,13 @@ void cpu_handler_callback(CyU3PDmaChannel   *chHandle, CyU3PDmaCbType_t  type, C
 
 /* This function sets up the DMA channels to pipe data to and from the
  * CPU so that cpu handlers can deals with it. */
-void cpu_handler_setup(void) {
+CyU3PReturnStatus_t cpu_handler_setup(void) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
   if (gCpuHandlerActive) {
-    return;
+    log_debug ( "Cpu handler already active.\n" );
+    return CY_U3P_SUCCESS; // not an error if we're already set up
   }
 
   /* Create a DMA MANUAL_IN channel for the producer socket. */
@@ -169,6 +169,8 @@ void cpu_handler_setup(void) {
     log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
   }
   gCpuHandlerActive = CyTrue;
+
+  return apiRetStatus;
 }
 
 /* This function tears down the DMA channels setup for CPU type handlers. */

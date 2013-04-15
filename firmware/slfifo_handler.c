@@ -1,6 +1,5 @@
 #include "slfifo_handler.h"
 #include <cyu3system.h>
-#include <cyu3error.h>
 #include <cyu3dma.h>
 #include <cyu3gpio.h>
 #include "cyu3pib.h"
@@ -110,13 +109,14 @@ void slfifo_cmd_end() {
 }
 
 
-void slfifo_setup(void) {
+CyU3PReturnStatus_t slfifo_setup(void) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
   log_debug("S");
   if (gSlFifoActive) {
-    return;
+    log_debug ( "slave fifo handler already setup\n" );
+    return CY_U3P_SUCCESS;  
   }
 
   CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
@@ -135,7 +135,7 @@ void slfifo_setup(void) {
   apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, CY_U3P_DMA_TYPE_AUTO, &dmaCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate1 failed, Error code = %d\n", apiRetStatus);
-    return;
+    return apiRetStatus;
   }
 
   /* Create a DMA MANUAL channel for U2P transfer. */
@@ -145,7 +145,7 @@ void slfifo_setup(void) {
 //  //apiRetStatus = CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate2 failed, Error code = %d\n", apiRetStatus);
-    return;
+    return apiRetStatus;
   }
 
   /* Create a DMA MANUAL channel for CPU2P transfer. */
@@ -158,11 +158,12 @@ void slfifo_setup(void) {
   apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleCPUtoP, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate3 failed, Error code = %d\n", apiRetStatus);
-    return;
+    return apiRetStatus;
   }
 
   gSlFifoActive = CyTrue;
   log_debug("S\n");
+  return apiRetStatus;
 }
 
 /* This function tears down the DMA channels setup for CPU type handlers. */

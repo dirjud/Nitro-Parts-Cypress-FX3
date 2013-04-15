@@ -97,21 +97,26 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
       break;
     }
   }
+
   // now setup the new handler types DMA channels
   if(gRdwrCmd.handler) {
     switch(gRdwrCmd.handler->type) {
     case HANDLER_TYPE_CPU:
-      cpu_handler_setup();
+      status=cpu_handler_setup();
       break;
       
     case HANDLER_TYPE_SLAVE_FIFO:
-      slfifo_setup();
+      status=slfifo_setup();
       break;
 
     default:
       // do nothing by default
       break;
     }
+  }
+  if (status) {
+    log_error ( "gRdWrCmd.handler failed to setup. %d\n", status );
+    return status; 
   }
 
   /* Flush the endpoint memory */
