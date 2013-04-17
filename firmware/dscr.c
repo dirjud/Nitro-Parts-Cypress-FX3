@@ -34,6 +34,13 @@
 
 #include "main.h"
 
+#include <vidpid.h>
+
+#define VIDH ((VID>>8) & 0xff)
+#define VIDL (VID & 0xff)
+#define PIDH ((PID>>8) & 0xff)
+#define PIDL (PID & 0xff)
+
 /* Standard device descriptor for USB 3.0 */
 const uint8_t CyFxUSB30DeviceDscr[] __attribute__ ((aligned (32))) =
 {
@@ -44,8 +51,8 @@ const uint8_t CyFxUSB30DeviceDscr[] __attribute__ ((aligned (32))) =
     0x00,                           /* Device sub-class */
     0x00,                           /* Device protocol */
     0x09,                           /* Maxpacket size for EP0 : 2^9 */
-    0xe1,0x1f,                      /* Vendor ID */
-    0xF0,0x00,                      /* Product ID */
+    VIDL,VIDH,                      /* Vendor ID */
+    PIDL,PIDH,                      /* Product ID */
     0x00,0x03,                      /* Device release number */
     0x01,                           /* Manufacture string index */
     0x02,                           /* Product string index */
@@ -63,8 +70,8 @@ const uint8_t CyFxUSB20DeviceDscr[] __attribute__ ((aligned (32))) =
     0x00,                           /* Device sub-class */
     0x00,                           /* Device protocol */
     0x40,                           /* Maxpacket size for EP0 : 64 bytes */
-    0xe1,0x1f,                      /* Vendor ID */
-    0xF0,0x00,                      /* Product ID */
+    VIDL,VIDH,                      /* Vendor ID */
+    PIDL,PIDH,                      /* Product ID */
     0x00,0x03,                      /* Device release number */
     0x01,                           /* Manufacture string index */
     0x02,                           /* Product string index */
