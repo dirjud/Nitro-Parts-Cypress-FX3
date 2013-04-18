@@ -6,6 +6,12 @@
 #include "error_handler.h"
 #include "main.h"
 
+#ifndef DEBUG_CPU_HANDLER
+#undef log_debug
+#define log_debug(...) do {} while (0)
+#endif
+
+
 CyU3PDmaChannel glChHandleBulkSink; /* DMA MANUAL_IN channel handle.  */
 CyU3PDmaChannel glChHandleBulkSrc;  /* DMA MANUAL_OUT channel handle. */
 uint32_t gTransferedSoFar;  // number of bytes handled/transfered already
@@ -26,8 +32,12 @@ void cpu_handler_read() {
   if(gRdwrCmd.handler->read_handler && gAckPkt.status == 0) {
     gAckPkt.status |= gRdwrCmd.handler->read_handler(&buf_p);
   }
+
+  gTransferedSoFar += buf_p.count;  
   gAckPkt.status |= CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p.count, 0);
-  gTransferedSoFar += buf_p.count;
+  if (gAckPkt.status) {
+    log_error ( "gAckPck.status %d\n" );
+  }
   log_debug("R %d/%d\n", gTransferedSoFar, gRdwrCmd.header.transfer_length);
 }
 
