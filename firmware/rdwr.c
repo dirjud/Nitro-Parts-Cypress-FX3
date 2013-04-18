@@ -10,6 +10,11 @@
 #include <cyu3i2c.h>
 #include <m24xx.h>
 
+#ifndef DEBUG_RDWR
+#undef log_debug
+#define log_debug(...) do {} while (0)
+#endif
+
 rdwr_cmd_t gRdwrCmd;
 uint8_t gSerialNum[16];
 
@@ -223,6 +228,7 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
   //  log_debug("VC%x\n", bRequest);
   switch (bRequest) {
   case VC_HI_RDWR:
+    log_debug("Call handle_rdwr\n");
     status = handle_rdwr(bReqType, wLength);
     break;
 
@@ -233,6 +239,10 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
 //  case VC_RDWR_RAM:
 //    status = handleRamRdwr(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
 //    break;
+
+  case VC_RENUM:
+    CyU3PDeviceReset(CyFalse); // cold boot from prom
+    break; // for readability but the above function actually doesn't return.
     
   default:
     isHandled = CyFalse;
@@ -241,12 +251,13 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
 
   if ((isHandled != CyTrue) || (status != CY_U3P_SUCCESS)) {
     /* This is an unhandled setup command. Stall the EP. */
-    //log_debug("VC stalled\n");
+    log_debug("VC stalled\n" ); // (cmd: %d)\n", bRequest);
     CyU3PUsbStall (0, CyTrue, CyFalse);
   } else {
-    //log_debug("VC Acked\n");
+    log_debug("VC Acked\n");
     CyU3PUsbAckSetup ();
   }
 
+  log_debug ( "handle_vendor_cmd exit\n");
   return CyTrue;
 }
