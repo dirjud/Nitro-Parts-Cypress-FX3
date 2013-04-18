@@ -19,3 +19,6 @@ SOURCE += $(FX3DIR)main.c
 
 # add any custom debugging or cflags
 #CCFLAGS := -Dxxx 
+
+# customize build directory
+#BUILDDIR = build
