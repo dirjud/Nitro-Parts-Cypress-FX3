@@ -32,23 +32,23 @@ void rdwr_teardown() {
 CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   CyU3PReturnStatus_t status;
   io_handler_t *prev_handler = gRdwrCmd.handler;
-  uint16_t debug_datasize, orig_ep_buffer_size;
+  // NOTE in my testing the read size was either 11 or 32.  11 being the correct
+  // size and 32 what comes back now and then.
+  // not sure if this is a bug or we're doing something wrong.
+  uint8_t tmp_buffer[sizeof(rdwr_data_header_t)+64];
 
   //log_debug("Entering handleRDWR\n");
   if (bReqType != 0x40 || wLength != sizeof(rdwr_data_header_t)) {
     log_error("Bad ReqType or length=%d (%d)\n", wLength, sizeof(rdwr_data_header_t));
     return CY_U3P_ERROR_BAD_ARGUMENT;
   }
-
-  orig_ep_buffer_size=gRdwrCmd.ep_buffer_size;
-  log_debug ( "gRdwrCmd buffer: %d\n", gRdwrCmd.ep_buffer_size );
-  // Fetch the rdwr command
+  // Fetch the rdwr command  
+  status = CyU3PUsbGetEP0Data(wLength, tmp_buffer, 0);
+  CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, tmp_buffer, sizeof(gRdwrCmd.header) );
   
-  status = CyU3PUsbGetEP0Data(wLength, (uint8_t *) &(gRdwrCmd.header), &debug_datasize);
-  if (!gRdwrCmd.ep_buffer_size) {
-    log_error ( "gRdwrCmd buffer: %d wLength %d data read: %d\n" , gRdwrCmd.ep_buffer_size, wLength, debug_datasize );
-    gRdwrCmd.ep_buffer_size=orig_ep_buffer_size;
-  }
+/*  if (!gRdwrCmd.ep_buffer_size) {*/
+/*    gRdwrCmd.ep_buffer_size=orig_ep_buffer_size;*/
+/*  }*/
 
   if(status != CY_U3P_SUCCESS){
     log_error("Error get EP0 Data\n", status);
