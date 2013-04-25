@@ -53,6 +53,9 @@ void init_i2c() {
     return;
   }
 }
+
+// NOTE api doc sys no debug logging and nothing else that 
+// would block in this interrupt.
 void gpio_interrupt (uint8_t gpioId /* Indicates the pin that triggered the interrupt */ ) {
 
 }
@@ -98,15 +101,18 @@ void init_gpio (void) {
      * line is used as part of GPIF and is connected to some external device,
      * then the line will no longer behave as a GPIF IO.. Here CTL4 line is
      * not used and so it is safe to override.  */
-    apiRetStatus = CyU3PDeviceGpioOverride (23, CyTrue);
-    if (apiRetStatus != 0) {
-        /* Error Handling */
-      log_error("CyU3PDeviceGpioOverride failed, code = %d\n", apiRetStatus);
-      error_handler(apiRetStatus);
-    }
+
+// NOTE check if this is really needed
+
+/*    apiRetStatus = CyU3PDeviceGpioOverride (23, CyTrue);*/
+/*    if (apiRetStatus != 0) {*/
+/*        /* Error Handling * / */
+/*      log_error("CyU3PDeviceGpioOverride failed, code = %d\n", apiRetStatus);*/
+/*      error_handler(apiRetStatus);*/
+/*    } */
 
     /* Configure GPIO 23 as output */
-    gpioConfig.outValue    = CyFalse;
+    gpioConfig.outValue    = CyTrue;
     gpioConfig.driveLowEn  = CyTrue;
     gpioConfig.driveHighEn = CyTrue;
     gpioConfig.inputEn     = CyFalse;
@@ -114,10 +120,40 @@ void init_gpio (void) {
     apiRetStatus = CyU3PGpioSetSimpleConfig(23, &gpioConfig);
     if (apiRetStatus != CY_U3P_SUCCESS) {
       /* Error handling */
-      log_error("CyU3PGpioSetSimpleConfig failed, code = %d\n", apiRetStatus);
+      log_error("CyU3PGpioSetSimpleConfig(23) failed, code = %d\n", apiRetStatus);
       error_handler(apiRetStatus);
     }
+    
+    // hold prog_b down at app start
+    gpioConfig.outValue=CyFalse;
+    apiRetStatus = CyU3PGpioSetSimpleConfig(57, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+      /* Error handling */
+      log_error("CyU3PGpioSetSimpleConfig(57) failed, code = %d\n", apiRetStatus);
+      error_handler(apiRetStatus);
+    }
+
+    // TODO - provide customizability in handlers?
+    // drive LP_B high
+    gpioConfig.outValue = CyTrue;
+    apiRetStatus = CyU3PGpioSetSimpleConfig(26, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+      /* Error handling */
+      log_error("CyU3PGpioSetSimpleConfig(26) failed, code = %d\n", apiRetStatus);
+      error_handler(apiRetStatus);
+    }
+   
+    // drive V18_EN high
+    apiRetStatus = CyU3PGpioSetSimpleConfig(27, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+      /* Error handling */
+      log_error("CyU3PGpioSetSimpleConfig(27) failed, code = %d\n", apiRetStatus);
+      error_handler(apiRetStatus);
+    }
+    
+
 }
+
 
 
 /* This function initializes the debug module. The debug prints
@@ -162,6 +198,8 @@ void CyFxNitroApplnDebugInit (void) {
   }
   CyU3PDebugPreamble(CyFalse);
   CyU3PDebugEnable(0xFFFF);
+
+  log_debug ( "Debugger Init.. should be working now.\n" );
 }
 
 /* This function starts the nitro application. This is called when a
@@ -226,6 +264,7 @@ void CyFxNitroApplnStart (void) {
   /* Drop current U1/U2 enable state values. */
   glUsbDeviceStat = 0;
 
+  log_debug("Exiting CyFxNitroApplnStart()\n");
 
 }
 
@@ -266,6 +305,7 @@ void CyFxNitroApplnStop (void) {
     log_error("CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
     error_handler (apiRetStatus);
   }
+  log_debug ( "Exit ApplnStop\n"  );
 }
 
 /* Handle the CLEAR_FEATURE request. */
@@ -546,7 +586,7 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
   CyBool_t isHandled = CyTrue;
   CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
-  CyU3PDebugPrint(LOG_DEBUG, "Entering handle_standard_setup_cmd\n");
+  log_debug( "Entering handle_standard_setup_cmd (%d)\n", bRequest);
 
   /* Identify and handle setup request. */
   switch (bRequest) {
@@ -661,6 +701,7 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
         
   default:
     isHandled = CyFalse;
+    log_debug ( "Request not handled.\n" );
     break;
   }
 
@@ -671,6 +712,8 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
   } else {
     CyU3PUsbAckSetup ();
   }
+
+  log_debug ( "Returning from handle_standard_setup_cmd\n");
   return CyTrue;
 }
 
@@ -685,6 +728,7 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
     CyBool_t handled=CyFalse;
     
     //CyU3PDebugPrint(LOG_DEBUG, "Entering CyFxNitroApplnUSBSetupCB()\n");
+    log_debug ( "Entering CyFxNitroApplnUSBSetupCB()\n");
     
 
     /* Decode the fields from the setup request. */
@@ -768,7 +812,7 @@ void CyFxNitroApplnInit (void) {
   if (apiRetStatus == CY_U3P_ERROR_NO_REENUM_REQUIRED) {
     no_renum = CyTrue;
   } else if (apiRetStatus != CY_U3P_SUCCESS) {
-    CyU3PDebugPrint (LOG_ERROR, "CyU3PUsbStart failed to Start, Error code = %d\n", apiRetStatus);
+    log_error ("CyU3PUsbStart failed to Start, Error code = %d\n", apiRetStatus);
     error_handler(apiRetStatus);
   }
 
@@ -792,7 +836,7 @@ void CyFxNitroApplnInit (void) {
     /* Connect the USB Pins with super speed operation enabled. */
     apiRetStatus = CyU3PConnectState(CyTrue, CyTrue);
     if (apiRetStatus != CY_U3P_SUCCESS) {
-      CyU3PDebugPrint (LOG_ERROR, "USB Connect failed, Error code = %d\n", apiRetStatus);
+      log_error( "USB Connect failed, Error code = %d\n", apiRetStatus);
       error_handler(apiRetStatus);
     }
   } else {
@@ -888,9 +932,14 @@ int main (void) {
   io_cfg.useI2S    = CyFalse;
   io_cfg.useSpi    = CyFalse;
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
-  /* No GPIOs are enabled. */
-  io_cfg.gpioSimpleEn[0]  = 1 << 23; // enable gpio[23]
-  io_cfg.gpioSimpleEn[1]  = 0;
+
+  // TODO these could change on different boards
+  // 23 = HICS for fpga
+  // 26 = LP_B
+  // 27 = V18_EN
+  // 57 = prog_b for the fpga
+  io_cfg.gpioSimpleEn[0]  = (1 << 23) | (1<<26) | (1<<27);
+  io_cfg.gpioSimpleEn[1]  = (1 << (57-32));
   io_cfg.gpioComplexEn[0] = 0;
   io_cfg.gpioComplexEn[1] = 0;
   status = CyU3PDeviceConfigureIOMatrix (&io_cfg);
