@@ -16,7 +16,8 @@
 #endif
 
 rdwr_cmd_t gRdwrCmd;
-uint8_t gSerialNum[16];
+uint8_t gSerialNum[32] __attribute__ ((aligned (32))); // actually 16 bytes but DMACache requires multiple of 32
+extern uint8_t glEp0Buffer[]; // dma aligned buffer for ep0 read/writes
 
 void rdwr_teardown() {
   if(gRdwrCmd.handler) {
@@ -32,10 +33,6 @@ void rdwr_teardown() {
 CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   CyU3PReturnStatus_t status;
   io_handler_t *prev_handler = gRdwrCmd.handler;
-  // NOTE in my testing the read size was either 11 or 32.  11 being the correct
-  // size and 32 what comes back now and then.
-  // not sure if this is a bug or we're doing something wrong.
-  uint8_t tmp_buffer[sizeof(rdwr_data_header_t)+64];
 
   //log_debug("Entering handleRDWR\n");
   if (bReqType != 0x40 || wLength != sizeof(rdwr_data_header_t)) {
@@ -43,18 +40,13 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
     return CY_U3P_ERROR_BAD_ARGUMENT;
   }
   // Fetch the rdwr command  
-  status = CyU3PUsbGetEP0Data(wLength, tmp_buffer, 0);
-  CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, tmp_buffer, sizeof(gRdwrCmd.header) );
-  
-/*  if (!gRdwrCmd.ep_buffer_size) {*/
-/*    gRdwrCmd.ep_buffer_size=orig_ep_buffer_size;*/
-/*  }*/
-
+  status = CyU3PUsbGetEP0Data(wLength, glEp0Buffer, 0);
   if(status != CY_U3P_SUCCESS){
     log_error("Error get EP0 Data\n", status);
     log_error("Flush status = %d\n", CyU3PUsbFlushEp(0));
     return status;
   }
+  CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, glEp0Buffer, sizeof(gRdwrCmd.header) );
 
   gRdwrCmd.done    = 0;
   gRdwrCmd.handler = NULL;
