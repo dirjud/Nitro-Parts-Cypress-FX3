@@ -815,6 +815,7 @@ void NitroAppThread_Entry (uint32_t input) {
   for (;;) {
     //handler_loop();
     CyU3PThreadSleep (1000); 
+    log_debug("x");
 //    CyU3PGpioSetValue (23, CyTrue);
 //    CyU3PGpioSetValue (23, CyFalse);
   }
