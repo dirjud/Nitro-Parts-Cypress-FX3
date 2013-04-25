@@ -682,6 +682,7 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
     uint8_t  bRequest, bReqType;
     uint8_t  bType, bTarget;
     uint16_t wValue, wIndex, wLength;
+    CyBool_t handled=CyFalse;
     
     //CyU3PDebugPrint(LOG_DEBUG, "Entering CyFxNitroApplnUSBSetupCB()\n");
     
@@ -706,14 +707,15 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
 
     switch (bType) {
     case CY_U3P_USB_STANDARD_RQT:
-      return handle_standard_setup_cmd(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
-
+      handled= handle_standard_setup_cmd(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
+      break;
     case CY_U3P_USB_VENDOR_RQT:
-      return handle_vendor_cmd(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
-
-    default:
-      return CyFalse;
+      handled= handle_vendor_cmd(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
+      break;
     }
+    
+    //log_debug ( "Vendor command handled: %d\n", handled ? 1 : 0);
+    return handled;
 }
 
 /* This is the callback function to handle the USB events. */

@@ -10,6 +10,11 @@
 #include <cyu3i2c.h>
 #include <m24xx.h>
 
+#ifndef DEBUG_RDWR
+#undef log_debug
+#define log_debug(...) do {} while (0)
+#endif
+
 rdwr_cmd_t gRdwrCmd;
 uint8_t gSerialNum[16];
 
@@ -27,18 +32,27 @@ void rdwr_teardown() {
 CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   CyU3PReturnStatus_t status;
   io_handler_t *prev_handler = gRdwrCmd.handler;
+  // NOTE in my testing the read size was either 11 or 32.  11 being the correct
+  // size and 32 what comes back now and then.
+  // not sure if this is a bug or we're doing something wrong.
+  uint8_t tmp_buffer[sizeof(rdwr_data_header_t)+64];
 
   //log_debug("Entering handleRDWR\n");
   if (bReqType != 0x40 || wLength != sizeof(rdwr_data_header_t)) {
     log_error("Bad ReqType or length=%d (%d)\n", wLength, sizeof(rdwr_data_header_t));
     return CY_U3P_ERROR_BAD_ARGUMENT;
   }
+  // Fetch the rdwr command  
+  status = CyU3PUsbGetEP0Data(wLength, tmp_buffer, 0);
+  CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, tmp_buffer, sizeof(gRdwrCmd.header) );
+  
+/*  if (!gRdwrCmd.ep_buffer_size) {*/
+/*    gRdwrCmd.ep_buffer_size=orig_ep_buffer_size;*/
+/*  }*/
 
-  // Fetch the rdwr command
-  status = CyU3PUsbGetEP0Data(wLength, (uint8_t *) &(gRdwrCmd.header), 0);
   if(status != CY_U3P_SUCCESS){
     log_error("Error get EP0 Data\n", status);
-    log_error("FLush status = %d\n", CyU3PUsbFlushEp(0));
+    log_error("Flush status = %d\n", CyU3PUsbFlushEp(0));
     return status;
   }
 
@@ -88,21 +102,26 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
       break;
     }
   }
+
   // now setup the new handler types DMA channels
   if(gRdwrCmd.handler) {
     switch(gRdwrCmd.handler->type) {
     case HANDLER_TYPE_CPU:
-      cpu_handler_setup();
+      status=cpu_handler_setup();
       break;
       
     case HANDLER_TYPE_SLAVE_FIFO:
-      slfifo_setup();
+      status=slfifo_setup();
       break;
 
     default:
       // do nothing by default
       break;
     }
+  }
+  if (status) {
+    log_error ( "gRdWrCmd.handler failed to setup. %d\n", status );
+    return status; 
   }
 
   /* Flush the endpoint memory */
@@ -209,6 +228,7 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
   //  log_debug("VC%x\n", bRequest);
   switch (bRequest) {
   case VC_HI_RDWR:
+    log_debug("Call handle_rdwr\n");
     status = handle_rdwr(bReqType, wLength);
     break;
 
@@ -219,6 +239,10 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
 //  case VC_RDWR_RAM:
 //    status = handleRamRdwr(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
 //    break;
+
+  case VC_RENUM:
+    CyU3PDeviceReset(CyFalse); // cold boot from prom
+    break; // for readability but the above function actually doesn't return.
     
   default:
     isHandled = CyFalse;
@@ -227,12 +251,13 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
 
   if ((isHandled != CyTrue) || (status != CY_U3P_SUCCESS)) {
     /* This is an unhandled setup command. Stall the EP. */
-    //log_debug("VC stalled\n");
+    log_debug("VC stalled\n" ); // (cmd: %d)\n", bRequest);
     CyU3PUsbStall (0, CyTrue, CyFalse);
   } else {
-    //log_debug("VC Acked\n");
+    log_debug("VC Acked\n");
     CyU3PUsbAckSetup ();
   }
 
+  log_debug ( "handle_vendor_cmd exit\n");
   return CyTrue;
 }

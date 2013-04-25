@@ -1,6 +1,7 @@
 #ifndef __SLFIFO_HANDLER_H__
 #define __SLFIFO_HANDLER_H__
 
+#include <cyu3error.h>
 
 #define CY_FX_SLFIFO_DMA_BUF_COUNT      (4) /* Bulk channel buffer count */
 //#define CY_FX_BULKSRCSINK_DMA_TX_SIZE        (0) /* DMA transfr size infinite */
@@ -16,7 +17,7 @@ void slfifo_cmd_end();
 
 /* This function sets up the DMA channels to pipe data to and from the
  * CPU so that cpu handlers can deals with it. */
-void slfifo_setup(void);
+CyU3PReturnStatus_t slfifo_setup(void);
 
 /* This function tears down the DMA channels setup for CPU type handlers. */
 void slfifo_teardown(void);

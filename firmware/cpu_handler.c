@@ -1,11 +1,16 @@
 #include "cpu_handler.h"
 #include <cyu3system.h>
-#include <cyu3error.h>
 #include <cyu3dma.h>
 #include "rdwr.h"
 #include "log.h"
 #include "error_handler.h"
 #include "main.h"
+
+#ifndef DEBUG_CPU_HANDLER
+#undef log_debug
+#define log_debug(...) do {} while (0)
+#endif
+
 
 CyU3PDmaChannel glChHandleBulkSink; /* DMA MANUAL_IN channel handle.  */
 CyU3PDmaChannel glChHandleBulkSrc;  /* DMA MANUAL_OUT channel handle. */
@@ -27,8 +32,12 @@ void cpu_handler_read() {
   if(gRdwrCmd.handler->read_handler && gAckPkt.status == 0) {
     gAckPkt.status |= gRdwrCmd.handler->read_handler(&buf_p);
   }
+
+  gTransferedSoFar += buf_p.count;  
   gAckPkt.status |= CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p.count, 0);
-  gTransferedSoFar += buf_p.count;
+  if (gAckPkt.status) {
+    log_error ( "gAckPck.status %d\n" );
+  }
   log_debug("R %d/%d\n", gTransferedSoFar, gRdwrCmd.header.transfer_length);
 }
 
@@ -111,12 +120,13 @@ void cpu_handler_callback(CyU3PDmaChannel   *chHandle, CyU3PDmaCbType_t  type, C
 
 /* This function sets up the DMA channels to pipe data to and from the
  * CPU so that cpu handlers can deals with it. */
-void cpu_handler_setup(void) {
+CyU3PReturnStatus_t cpu_handler_setup(void) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
   if (gCpuHandlerActive) {
-    return;
+    log_debug ( "Cpu handler already active.\n" );
+    return CY_U3P_SUCCESS; // not an error if we're already set up
   }
 
   /* Create a DMA MANUAL_IN channel for the producer socket. */
@@ -169,6 +179,8 @@ void cpu_handler_setup(void) {
     log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
   }
   gCpuHandlerActive = CyTrue;
+
+  return apiRetStatus;
 }
 
 /* This function tears down the DMA channels setup for CPU type handlers. */

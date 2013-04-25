@@ -1,6 +1,7 @@
 /* Application Error Handler */
 
 #include <cyu3os.h>
+#include <cyu3error.h>
 #include "error_handler.h"
 
 void error_handler(CyU3PReturnStatus_t apiRetStatus) {
@@ -9,6 +10,7 @@ void error_handler(CyU3PReturnStatus_t apiRetStatus) {
   /* Loop Indefinitely */
   for (;;) {
     /* Thread sleep : 100 ms */
-    CyU3PThreadSleep (100);
+    CyU3PThreadSleep (1000);
+    log_error("The app is stuck in the error_handler: %d\n", apiRetStatus );
   }
 }
