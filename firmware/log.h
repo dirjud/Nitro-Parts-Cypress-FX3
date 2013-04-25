@@ -1,14 +1,18 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#include <cyu3system.h>
 
 /**
- * Size of max buffer for debug statements
- * If you have a long string to print you might get the end
- * ignored.  Else increase this if it's a big deal.
+ * log_debug is defined to do nothing unless CCFLAGS has -DENABLE_LOGGING
+ * You can also add
+ * -D LOG_LOCATION=1 - add file:line to log statements
+ * -D LOG_THREAD_ID=1 - add thread id to start of log
+ *  (Note right now thread id requires location)
  **/
-#define NITRO_MAX_DEBUG_LEN 100
+
+#if ENABLE_LOGGING
+
+#include <cyu3system.h>
 
 enum {
   LOG_ERROR = 0,
@@ -17,10 +21,15 @@ enum {
   LOG_DEBUG,
 };
 
-#define LOG_THREAD_ID 0
-#define LOG_COMPLEX 0
 
-#if LOG_COMPLEX
+#ifndef LOG_THREAD_ID
+#define LOG_THREAD_ID 0
+#endif
+#ifndef LOG_LOCATION
+#define LOG_LOCATION 0
+#endif
+
+#if LOG_LOCATION
 #if LOG_THREAD_ID
 #define log_stmt(LEVEL,X, ...) do {\
     uint8_t *pName;\
@@ -38,11 +47,16 @@ enum {
 #define log_stmt(LEVEL,X,...) do { CyU3PDebugPrint(LEVEL,X, ##__VA_ARGS__); } while (0)
 #endif
 
-void nitro_log_stmt(uint32_t level, char* format, ...);
 
 #define log_debug(X, ...) log_stmt(LOG_DEBUG, X, ##__VA_ARGS__)
 #define log_error(X, ...) log_stmt(LOG_ERROR, X, ##__VA_ARGS__)
 
+#else
+// logging not enabled
+#define log_debug(...) do {} while (0)
+#define log_error(...) do {} while (0)
+
+#endif
 
 
 #endif
