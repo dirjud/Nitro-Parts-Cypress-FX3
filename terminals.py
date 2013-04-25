@@ -37,10 +37,6 @@ di=DeviceInterface(
     name="fx3",
     terminal_list=[ 
         Terminal(
-            name="DUMMY_FPGA",
-            addr = 0x1,
-            ),
-        Terminal(
             name='FX3',
             comment='Special FX3 functions.', 
             addr=0x100,
