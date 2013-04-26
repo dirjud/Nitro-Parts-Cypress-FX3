@@ -10,11 +10,18 @@
 #include "main.h"
 #include "cyu3usb.h"
 #include "cyu3uart.h"
-#include "log.h"
 #include "rdwr.h"
 #include "error_handler.h"
 #include "cyu3gpio.h"
 #include "slfifo_handler.h"
+
+
+#include "log.h"
+#ifndef DEBUG_MAIN
+#undef log_debug
+#define log_debug(x,...) do {} while(0)
+#endif
+
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PDmaChannel glChHandleNitro;       /* DMA Channel handle */

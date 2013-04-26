@@ -4,7 +4,7 @@
 #include <cyu3gpio.h>
 #include "cyu3pib.h"
 #include "rdwr.h"
-#include "log.h"
+
 #include "error_handler.h"
 #include "main.h"
 /* This file should be included only once as it contains
@@ -12,6 +12,12 @@
  * can result in linker error. */
 #include "cyfxgpif2config.h"
 //#include "cyfxgpif_syncsfclock.h"
+
+#include "log.h"
+#ifndef DEBUG_SLFIFO_HANDLER
+#undef log_debug
+#define log_debug(...) do {} while(0)
+#endif
 
 
 

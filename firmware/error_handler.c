@@ -3,6 +3,7 @@
 #include <cyu3os.h>
 #include <cyu3error.h>
 #include "error_handler.h"
+#include "log.h"
 
 void error_handler(CyU3PReturnStatus_t apiRetStatus) {
   /* Application failed with the error code apiRetStatus */

@@ -2,7 +2,6 @@
 #include "cyu3usb.h"
 #include "vendor_commands.h"
 #include "rdwr.h"
-#include "log.h"
 #include "cpu_handler.h"
 #include "slfifo_handler.h"
 #include "main.h"
@@ -10,6 +9,7 @@
 #include <cyu3i2c.h>
 #include <m24xx.h>
 
+#include "log.h"
 #ifndef DEBUG_RDWR
 #undef log_debug
 #define log_debug(...) do {} while (0)
