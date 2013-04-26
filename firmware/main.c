@@ -144,6 +144,7 @@ void init_gpio (void) {
     }
    
     // drive V18_EN high
+    gpioConfig.outValue = CyFalse;
     apiRetStatus = CyU3PGpioSetSimpleConfig(27, &gpioConfig);
     if (apiRetStatus != CY_U3P_SUCCESS) {
       /* Error handling */
