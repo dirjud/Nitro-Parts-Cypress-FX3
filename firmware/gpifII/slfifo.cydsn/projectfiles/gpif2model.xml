@@ -40,8 +40,8 @@
     <Signal ElementId="FLAG0" SignalType="Flags" SpecialFunction="None">
       <DisplayName>FLAGA</DisplayName>
       <GPIOPinNumber>GPIO_21</GPIOPinNumber>
-      <IntialValue>Low</IntialValue>
-      <Polarity>ActiveHigh</Polarity>
+      <IntialValue>High</IntialValue>
+      <Polarity>ActiveLow</Polarity>
       <Flags>Current_Thread_DMA_Ready</Flags>
     </Signal>
   </Signals>
