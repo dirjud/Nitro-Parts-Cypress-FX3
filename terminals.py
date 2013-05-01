@@ -37,6 +37,13 @@ di=DeviceInterface(
     name="fx3",
     terminal_list=[ 
         Terminal(
+            name="DUMMY_FX3",
+            comment = "Read/write dummy data from this terminal",
+            addr = 5,
+            regAddrWidth=16,
+            regDataWidth=8,
+            ),
+        Terminal(
             name='FX3',
             comment='Special FX3 functions.', 
             addr=0x100,
