@@ -26,7 +26,13 @@
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PDmaChannel glChHandleNitro;       /* DMA Channel handle */
 
+CyU3PEvent glThreadEvent;              /* event to cause app thread to wake up */
+#define NITRO_EVENT_VENDOR_CMD  (1<<0) /* mask for vendor commands */
+
 uint8_t glEp0Buffer[32] __attribute__ ((aligned (32))); /* Buffer used for sending EP0 data.    */
+uint32_t glSetupDat0, glSetupDat1;      /* for handling vendor commands on app thread */
+
+
 uint8_t glUsbDeviceStat = 0;            /* USB device status. Bus powered.      */
 uint8_t glUsbConfiguration = 0;         /* Active USB configuration.            */
 uint8_t glUsbInterface = 0;             /* Active USB interface.                */
@@ -757,16 +763,25 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
     //log_debug("  wIndex   : 0x%x\n", wIndex);
     //log_debug("  wLength  : 0x%x\n", wLength);
 
+    
+
     switch (bType) {
     case CY_U3P_USB_STANDARD_RQT:
       handled= handle_standard_setup_cmd(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
       break;
     case CY_U3P_USB_VENDOR_RQT:
-      handled= handle_vendor_cmd(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
+      handled = CyTrue;
+      glSetupDat0=setupdat0;
+      glSetupDat1=setupdat1;
+      // TODO could we monitor entry/exit of handle event
+      // and if there is a new one cancel the existing one?
+      // we could do a get first to see if the flag is currently set
+      // perhaps for instance
+      CyU3PEventSet(&glThreadEvent, NITRO_EVENT_VENDOR_CMD, CYU3P_EVENT_OR);
       break;
     }
     
-    //log_debug ( "Vendor command handled: %d\n", handled ? 1 : 0);
+    log_debug ( "Vendor command handled: %d\n", handled ? 1 : 0);
     return handled;
 }
 
@@ -858,6 +873,11 @@ void CyFxNitroApplnInit (void) {
 
 /* Entry function for the NitroAppThread. */
 void NitroAppThread_Entry (uint32_t input) {
+
+  CyU3PReturnStatus_t ret;
+  uint32_t eventMask = NITRO_EVENT_VENDOR_CMD; // can add more events
+  uint32_t eventStat;
+
   /* Initialize the debug module */
   CyFxNitroApplnDebugInit();
   init_i2c();
@@ -866,25 +886,45 @@ void NitroAppThread_Entry (uint32_t input) {
   /* Initialize the bulk loop application */
   CyFxNitroApplnInit();
 
+  log_info ( "Nitro Thread Entry\n" );
+  
   for (;;) {
-    //handler_loop();
-    CyU3PThreadSleep (1000); 
-    log_debug("x");
-//    CyU3PGpioSetValue (23, CyTrue);
-//    CyU3PGpioSetValue (23, CyFalse);
+    ret = CyU3PEventGet(&glThreadEvent, eventMask, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
+    if (ret == CY_U3P_SUCCESS) {
+        // handle event
+        if (eventStat & NITRO_EVENT_VENDOR_CMD) {
+            handle_vendor_cmd ( 
+                ((glSetupDat0 & CY_U3P_USB_REQUEST_MASK) >> CY_U3P_USB_REQUEST_POS), // bRequest
+                glSetupDat0 & CY_U3P_USB_REQUEST_TYPE_MASK, // bReqType
+                glSetupDat0 & CY_U3P_USB_REQUEST_TYPE_MASK & CY_U3P_USB_TYPE_MASK, // bType
+                glSetupDat0 & CY_U3P_USB_REQUEST_TYPE_MASK & CY_U3P_USB_TARGET_MASK, // bTarget
+                ((glSetupDat0 & CY_U3P_USB_VALUE_MASK)   >> CY_U3P_USB_VALUE_POS), // wValue
+                ((glSetupDat1 & CY_U3P_USB_INDEX_MASK)   >> CY_U3P_USB_INDEX_POS), // wIndex
+                ((glSetupDat1 & CY_U3P_USB_LENGTH_MASK)  >> CY_U3P_USB_LENGTH_POS) ); // wLength
+        }
+    }
+
+/*    uint8_t curState;*/
+/*    CyU3PGpifGetSMState(&curState);*/
+/*    log_error("%d\n", curState );  */
   }
 }
 
 /* Application define function which creates the threads. */
 void CyFxApplicationDefine (void) {
   void *ptr = NULL;
-  uint32_t retThrdCreate = CY_U3P_SUCCESS;
+  uint32_t ret = CY_U3P_SUCCESS;
+  
+  ret = CyU3PEventCreate(&glThreadEvent);
+  if (ret != CY_U3P_SUCCESS) {
+    while (1); // debugging not initialized yet.
+  }
 
   /* Allocate the memory for the threads */
   ptr = CyU3PMemAlloc (CY_FX_NITRO_THREAD_STACK);
 
   /* Create the thread for the application */
-  retThrdCreate = CyU3PThreadCreate (&NitroAppThread, /* Bulk loop App Thread structure */
+  ret = CyU3PThreadCreate (&NitroAppThread, /* Bulk loop App Thread structure */
 				     "21:Nitro",      /* Thread ID and Thread name */
 				     NitroAppThread_Entry, /* Bulk loop App Thread Entry function */
 				     0,      /* No input parameter to thread */
@@ -897,7 +937,7 @@ void CyFxApplicationDefine (void) {
 				     );
 
   /* Check the return code */
-  if (retThrdCreate != 0) {
+  if (ret != 0) {
     /* Thread Creation failed with the error code retThrdCreate */
     /* Add custom recovery or debug actions here */
     /* Application cannot continue */

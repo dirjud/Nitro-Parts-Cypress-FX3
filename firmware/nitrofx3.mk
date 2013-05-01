@@ -17,7 +17,7 @@ EXES = $(MODULE).$(EXEEXT)
 
 
 # the common include path
-Include	+= -I$(FX3DIR)/u3p_firmware/inc -I. -I$(FX3DIR) -I../../../Microchip/M24XX/fx3 -I../../../Xilinx/Spartan/fx3
+Include	+= -I$(CYFX3SDK)/firmware/u3p_firmware/inc -I. -I$(FX3DIR) -I../../../Microchip/M24XX/fx3 -I../../../Xilinx/Spartan/fx3
 
 # the common compiler options
 CCFLAGS += -O0 \
