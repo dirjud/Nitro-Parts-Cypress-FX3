@@ -47,13 +47,16 @@ enum {
 #define log_stmt(LEVEL,X,...) do { CyU3PDebugPrint(LEVEL,X, ##__VA_ARGS__); } while (0)
 #endif
 
-
 #define log_debug(X, ...) log_stmt(LOG_DEBUG, X, ##__VA_ARGS__)
+#define log_info(X, ...) log_stmt(LOG_INFO, X, ##__VA_ARGS__)
+#define log_warn(X, ...) log_stmt(LOG_WARN, X, ##__VA_ARGS__)
 #define log_error(X, ...) log_stmt(LOG_ERROR, X, ##__VA_ARGS__)
 
 #else
 // logging not enabled
 #define log_debug(...) do {} while (0)
+#define log_info(...) do {} while(0)
+#define log_warn(...) do {} while(0)
 #define log_error(...) do {} while (0)
 
 #endif
