@@ -56,17 +56,6 @@
       <IsGroup>False</IsGroup>
       <ParentID>00000000-0000-0000-0000-000000000000</ParentID>
     </CyNormalState>
-    <CyNormalState>
-      <Left>271</Left>
-      <Top>343.446666666667</Top>
-      <Width>83</Width>
-      <Height>70</Height>
-      <Name>STATE0</Name>
-      <DisplayName>DSS_STATE</DisplayName>
-      <zIndex>1</zIndex>
-      <IsGroup>False</IsGroup>
-      <ParentID>00000000-0000-0000-0000-000000000000</ParentID>
-    </CyNormalState>
     <CyStartState>
       <Left>370</Left>
       <Top>0</Top>
@@ -80,72 +69,6 @@
     </CyStartState>
   </CyStates>
   <CyTransitions>
-    <CyTransition>
-      <Name>TRANSITION15</Name>
-      <TransitionEquation>SLWR&amp;PKEND&amp;SLRD</TransitionEquation>
-      <SourceName>STATE0</SourceName>
-      <SinkName>STATE1</SinkName>
-      <SourceConnectorName>Connector</SourceConnectorName>
-      <SinkConnectorName>Connector</SinkConnectorName>
-      <SourceArrowSymbol>None</SourceArrowSymbol>
-      <SinkArrowSymbol>Arrow</SinkArrowSymbol>
-      <zIndex>0</zIndex>
-    </CyTransition>
-    <CyTransition>
-      <Name>TRANSITION14</Name>
-      <TransitionEquation>SLWR&amp;!PKEND&amp;SLRD</TransitionEquation>
-      <SourceName>STATE0</SourceName>
-      <SinkName>STATE5</SinkName>
-      <SourceConnectorName>Connector</SourceConnectorName>
-      <SinkConnectorName>Connector</SinkConnectorName>
-      <SourceArrowSymbol>None</SourceArrowSymbol>
-      <SinkArrowSymbol>Arrow</SinkArrowSymbol>
-      <zIndex>0</zIndex>
-    </CyTransition>
-    <CyTransition>
-      <Name>TRANSITION13</Name>
-      <TransitionEquation>!SLWR&amp;!PKEND&amp;SLRD</TransitionEquation>
-      <SourceName>STATE0</SourceName>
-      <SinkName>STATE4</SinkName>
-      <SourceConnectorName>Connector</SourceConnectorName>
-      <SinkConnectorName>Connector</SinkConnectorName>
-      <SourceArrowSymbol>None</SourceArrowSymbol>
-      <SinkArrowSymbol>Arrow</SinkArrowSymbol>
-      <zIndex>0</zIndex>
-    </CyTransition>
-    <CyTransition>
-      <Name>TRANSITION12</Name>
-      <TransitionEquation>!SLWR&amp;PKEND&amp;SLRD</TransitionEquation>
-      <SourceName>STATE0</SourceName>
-      <SinkName>STATE3</SinkName>
-      <SourceConnectorName>Connector</SourceConnectorName>
-      <SinkConnectorName>Connector</SinkConnectorName>
-      <SourceArrowSymbol>None</SourceArrowSymbol>
-      <SinkArrowSymbol>Arrow</SinkArrowSymbol>
-      <zIndex>0</zIndex>
-    </CyTransition>
-    <CyTransition>
-      <Name>TRANSITION11</Name>
-      <TransitionEquation>SLWR&amp;PKEND&amp;!SLRD&amp;!SLOE</TransitionEquation>
-      <SourceName>STATE0</SourceName>
-      <SinkName>STATE2</SinkName>
-      <SourceConnectorName>Connector</SourceConnectorName>
-      <SinkConnectorName>Connector</SinkConnectorName>
-      <SourceArrowSymbol>None</SourceArrowSymbol>
-      <SinkArrowSymbol>Arrow</SinkArrowSymbol>
-      <zIndex>0</zIndex>
-    </CyTransition>
-    <CyTransition>
-      <Name>TRANSITION0</Name>
-      <TransitionEquation>SLWR&amp;PKEND&amp;SLRD</TransitionEquation>
-      <SourceName>STATE1</SourceName>
-      <SinkName>STATE0</SinkName>
-      <SourceConnectorName>Connector</SourceConnectorName>
-      <SinkConnectorName>Connector</SinkConnectorName>
-      <SourceArrowSymbol>None</SourceArrowSymbol>
-      <SinkArrowSymbol>Arrow</SinkArrowSymbol>
-      <zIndex>0</zIndex>
-    </CyTransition>
     <CyTransition>
       <Name>TRANSITION1</Name>
       <TransitionEquation>LOGIC_ONE</TransitionEquation>
