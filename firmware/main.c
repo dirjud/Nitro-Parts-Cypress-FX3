@@ -790,19 +790,41 @@ void CyFxNitroApplnUSBEventCB (
     CyU3PUsbEventType_t evtype, /* Event type */
     uint16_t            evdata  /* Event data */
     ) {
-//  log_debug("Entering CyFxNitroApplnUSBEventCB\n");
+  log_debug("Entering CyFxNitroApplnUSBEventCB\n");
 //  log_debug("  evtype  : 0x%x\n", evtype);
 //  log_debug("  evtdata : 0x%x\n", evdata);
   switch (evtype) {
   case CY_U3P_USB_EVENT_RESET:
-  case CY_U3P_USB_EVENT_DISCONNECT:
+    log_debug ( "USB RESET\n" );
     /* Stop the loop back function. */
     CyFxNitroApplnStop ();
     /* Drop current U1/U2 enable state values. */
     glUsbDeviceStat = 0;
     break;
-
+  case CY_U3P_USB_EVENT_SUSPEND:
+    log_debug("SUSPEND\n" );
+    break;
+  case CY_U3P_USB_EVENT_VBUS_VALID:
+    log_debug("VBUS VALID\n");
+    break;
+  case CY_U3P_USB_EVENT_VBUS_REMOVED:
+    log_debug( "VBUS POWER REMOVED\n");
+    break;    
+  case CY_U3P_USB_EVENT_DISCONNECT:
+    log_debug ( "USB DISCONNECT\n" );
+    /* Stop the loop back function. */
+    CyFxNitroApplnStop ();
+    /* Drop current U1/U2 enable state values. */
+    glUsbDeviceStat = 0;
+    break;
+  case CY_U3P_USB_EVENT_SPEED:
+    log_debug ( "USB_EVENT_SPEED\n" );
+    break;
+  case CY_U3P_USB_EVENT_EP0_STAT_CPLT:
+    log_debug ( "EP0_STAT_CPLT\n" );
+    break;
   default:
+    log_debug ( "Unhandled %d\n", evtype );
     break;
   }
 }
