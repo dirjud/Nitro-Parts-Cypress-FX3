@@ -167,6 +167,8 @@ CyU3PReturnStatus_t slfifo_setup(void) {
     return apiRetStatus;
   }
 
+  CyU3PThreadSleep(20);
+
   gSlFifoActive = CyTrue;
   log_debug("S\n");
   return apiRetStatus;

@@ -193,6 +193,7 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
     error_handler(apiRetStatus);
   }
 
+  CyU3PThreadSleep(20); // seems like the channel really isn't quite ready
 
   gCpuHandlerActive = CyTrue;
 
