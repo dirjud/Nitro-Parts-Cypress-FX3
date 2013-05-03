@@ -72,10 +72,35 @@ void cpu_handler_cmd_start() {
   gAckPkt.status   = 0;
   gAckPkt.reserved = 0;
 
+  CyU3PReturnStatus_t apiRetStatus;
+
   // Call this handlers init function, if it exists
   if(gRdwrCmd.handler->init_handler) {
     gAckPkt.status |= gRdwrCmd.handler->init_handler();
   }
+
+
+  /* reset our bulk channels */
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSink);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSrc);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
+
+  /* Set DMA Channel transfer size to infinite */
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
+  }
+
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
+  }
+
 
   // If this is a read or get command, kick of the first packet read.
   // Additional packets reads will get initiated in the event callback.
@@ -168,16 +193,7 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
     error_handler(apiRetStatus);
   }
 
-  /* Set DMA Channel transfer size to infinite */
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-  }
 
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-  }
   gCpuHandlerActive = CyTrue;
 
   return apiRetStatus;
