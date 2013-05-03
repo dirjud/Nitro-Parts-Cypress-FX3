@@ -8,11 +8,11 @@
 #define CY_FX_DMA_SIZE_MULTIPLIER      (2)
 
 
-void cpu_handler_read();
-void cpu_handler_write();
 /* Called at the start of any newly received cpu handler. */
 void cpu_handler_cmd_start();
 void cpu_handler_cmd_end();
+
+uint16_t cpu_handler_dmacb(); 
 
 /* This function sets up the DMA channels to pipe data to and from the
  * CPU so that cpu handlers can deals with it. */

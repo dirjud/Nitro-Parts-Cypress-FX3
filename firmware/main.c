@@ -200,7 +200,7 @@ void CyFxNitroApplnDebugInit (void) {
   }
 
   /* Set the UART transfer to a really large value. */
-  apiRetStatus = CyU3PUartTxSetBlockXfer (0xFFFFFFFF);
+  apiRetStatus = CyU3PUartTxSetBlockXfer (0xFFFFFFFFu);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     error_handler(apiRetStatus);
   }
@@ -908,9 +908,20 @@ void NitroAppThread_Entry (uint32_t input) {
   /* Initialize the bulk loop application */
   CyFxNitroApplnInit();
 
+  gRdwrCmd.done = 1; // not in a command
+
   log_info ( "Nitro Thread Entry\n" );
   
   for (;;) {
+    log_info(".");
+
+    if (!gRdwrCmd.done) {
+        if (gRdwrCmd.handler && gRdwrCmd.handler->type == HANDLER_TYPE_CPU) {
+            if (!cpu_handler_dmacb())
+                continue; // do this in a loop until dma cb puts the command back to done
+        }
+    }
+
     ret = CyU3PEventGet(&glThreadEvent, eventMask, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
     if (ret == CY_U3P_SUCCESS) {
         // handle event

@@ -19,22 +19,20 @@ CyBool_t gCpuHandlerActive = CyFalse;
 extern rdwr_cmd_t gRdwrCmd;
 ack_pkt_t gAckPkt;
 
-void cpu_handler_read() {
-  CyU3PDmaBuffer_t buf_p;
-  gAckPkt.status |= CyU3PDmaChannelGetBuffer(&glChHandleBulkSrc, &buf_p, CYU3P_NO_WAIT);
+void cpu_handler_read(CyU3PDmaBuffer_t *buf_p) {
 
-  log_debug("C %d\n", buf_p.size);
-  buf_p.count = (gTransferedSoFar + buf_p.size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gTransferedSoFar : buf_p.size;
+  log_debug("C %d\n", buf_p->size);
+  buf_p->count = (gTransferedSoFar + buf_p->size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gTransferedSoFar : buf_p->size;
 
   // Call the read handler if the read handler function exists and if
   // the status is still OK. Otherwise, try continuing the data
   // transfer with bogus data.
   if(gRdwrCmd.handler->read_handler && gAckPkt.status == 0) {
-    gAckPkt.status |= gRdwrCmd.handler->read_handler(&buf_p);
+    gAckPkt.status |= gRdwrCmd.handler->read_handler(buf_p);
   }
 
-  gTransferedSoFar += buf_p.count;  
-  gAckPkt.status |= CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p.count, 0);
+  gTransferedSoFar += buf_p->count;  
+  gAckPkt.status |= CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p->count, 0);
   if (gAckPkt.status) {
     log_error ( "gAckPck.status %d\n" );
   }
@@ -55,13 +53,13 @@ void cpu_handler_commit_ack() {
   CyU3PReturnStatus_t status;
   CyU3PDmaBuffer_t buf_p;
 
-  status = CyU3PDmaChannelGetBuffer (&glChHandleBulkSrc, &buf_p, CYU3P_NO_WAIT);
+  status = CyU3PDmaChannelGetBuffer (&glChHandleBulkSrc, &buf_p, 500 ); //CYU3P_NO_WAIT);
   if (status == CY_U3P_SUCCESS) {
     CyU3PMemCopy(buf_p.buffer, (uint8_t *) (&gAckPkt), sizeof(gAckPkt));
     CyU3PDmaChannelCommitBuffer (&glChHandleBulkSrc, sizeof(gAckPkt),0);
-    gRdwrCmd.done = 1;
   }
   log_debug("ACK %d\n", gAckPkt.status);
+  gRdwrCmd.done = 1; // note setting done to 1 even if the buffer didn't work
 }
 
 /* Called at the start of any newly received cpu handler. */
@@ -102,12 +100,6 @@ void cpu_handler_cmd_start() {
   }
 
 
-  // If this is a read or get command, kick of the first packet read.
-  // Additional packets reads will get initiated in the event callback.
-  if(gRdwrCmd.header.command == COMMAND_READ ||
-     gRdwrCmd.header.command == COMMAND_GET) {
-    cpu_handler_read();
-  }
 }
 
 void cpu_handler_cmd_end() {
@@ -117,30 +109,43 @@ void cpu_handler_cmd_end() {
 }
 
 
+uint16_t cpu_handler_dmacb() {
 
+    CyU3PReturnStatus_t ret;
+    CyU3PDmaBuffer_t dmaBuf_p;
+    log_debug ( "DMA cb %d/%d done %d\n", gTransferedSoFar, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
 
-/* Callback funtion for the DMA event notification. */
-void cpu_handler_callback(CyU3PDmaChannel   *chHandle, CyU3PDmaCbType_t  type, CyU3PDmaCBInput_t *input) {
+    if (gRdwrCmd.header.command & bmSETWRITE) {
+        // a write
+        // wait for a buffer on the producer socket
 
-  if (type == CY_U3P_DMA_CB_PROD_EVENT) {
-    // We received some write data, so call the write handler.
-    cpu_handler_write(&(input->buffer_p));
-
-    // Check if we should commit ack packet yet.
-    if(gTransferedSoFar >= gRdwrCmd.header.transfer_length) {
-      cpu_handler_commit_ack();
+        ret = CyU3PDmaChannelGetBuffer (&glChHandleBulkSink, &dmaBuf_p, 500 ); //CYU3P_WAIT_FOREVER);
+        if (ret != CY_U3P_SUCCESS) {
+            // no buffer to write currently
+            CyU3PDmaState_t stat;
+            log_debug ( "didn't get write buffer: %d\n", ret );
+            CyU3PDmaChannelGetStatus(&glChHandleBulkSink, &stat, 0, 0);
+            log_debug ( "chstat %d\n", stat );
+            return ret;
+        }
+        
+        cpu_handler_write(&dmaBuf_p);
+        
+    } else {
+        // a read
+        ret = CyU3PDmaChannelGetBuffer (&glChHandleBulkSrc, &dmaBuf_p, 500 ); //CYU3P_WAIT_FOREVER);
+        if (ret != CY_U3P_SUCCESS) {
+            log_debug ( "didn't get a read buffer: %d\n", ret );
+            return ret;
+        }
+        cpu_handler_read(&dmaBuf_p);
+    }
+    
+    if (gTransferedSoFar >= gRdwrCmd.header.transfer_length) {
+        cpu_handler_commit_ack();
     }
 
-  } else if (type == CY_U3P_DMA_CB_CONS_EVENT) {
-    // Check if we should commit ack packet yet.
-    if(gRdwrCmd.done) {
-      // do nothing if we are done
-    } else if(gTransferedSoFar >= gRdwrCmd.header.transfer_length) {
-      cpu_handler_commit_ack();
-    } else { // otherwise, we initiate another read.
-      cpu_handler_read();
-    }
-  }
+    return 0;
 }
 
 /* This function sets up the DMA channels to pipe data to and from the
@@ -171,8 +176,8 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
   dmaCfg.prodSckId = CY_FX_EP_PRODUCER_SOCKET;
   dmaCfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
   dmaCfg.dmaMode   = CY_U3P_DMA_MODE_BYTE;
-  dmaCfg.notification = CY_U3P_DMA_CB_PROD_EVENT | CY_U3P_DMA_CB_CONS_EVENT;
-  dmaCfg.cb = cpu_handler_callback;
+  dmaCfg.notification = 0; //0xFFFF; //CY_U3P_DMA_CB_PROD_EVENT | CY_U3P_DMA_CB_CONS_EVENT;
+  dmaCfg.cb = 0; //cpu_handler_callback;
   dmaCfg.prodHeader = 0;
   dmaCfg.prodFooter = 0;
   dmaCfg.consHeader = 0;
@@ -192,8 +197,6 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
     log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
     error_handler(apiRetStatus);
   }
-
-  CyU3PThreadSleep(20); // seems like the channel really isn't quite ready
 
   gCpuHandlerActive = CyTrue;
 

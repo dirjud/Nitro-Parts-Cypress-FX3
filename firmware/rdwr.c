@@ -51,6 +51,11 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   gRdwrCmd.done    = 0;
   gRdwrCmd.handler = NULL;
 
+  /* Flush the endpoint memory */
+  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
+  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
+
+
   // Select the appropriate handler. Any handler specified with term_addr of
   // 0 is considered the wild card handler and will prevent any handlers
   // following if from being accessed.
@@ -118,9 +123,6 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
     return status; 
   }
 
-  /* Flush the endpoint memory */
-  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
 
   // call the new handlers init function, if it exists
   if (gRdwrCmd.handler) {
