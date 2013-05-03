@@ -79,7 +79,9 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   }
 
   // first tear down previous handlers DMA channels
-  if(prev_handler && prev_handler != gRdwrCmd.handler) {
+  if(prev_handler && (
+	!gRdwrCmd.handler || 
+ 	gRdwrCmd.handler->type != prev_handler->type )) {
     switch(prev_handler->type) {
     case HANDLER_TYPE_CPU:
       cpu_handler_teardown();
