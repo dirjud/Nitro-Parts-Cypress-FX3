@@ -4,4 +4,4 @@
 *.map
 u3p_firmware
 fx3_terminals.h
-vidpid.h
+gen
