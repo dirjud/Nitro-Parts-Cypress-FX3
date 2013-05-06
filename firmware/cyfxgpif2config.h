@@ -1,6 +1,6 @@
 /*
  * Project Name: slfifo.cyfx
- * Time : 05/01/2013 11:23:44
+ * Time : 05/06/2013 15:37:56
  * Device Type: FX3
  * Project Type: GPIF2
  *
@@ -21,7 +21,7 @@
 /* Summary
    Number of states in the state machine
  */
-#define CY_NUMBER_OF_STATES 6
+#define CY_NUMBER_OF_STATES 7
 
 /* Summary
    Mapping of user defined state names to state indices
@@ -32,12 +32,13 @@
 #define WRITE 3
 #define SHORT_PKT 4
 #define ZLP 5
+#define DSS_STATE 6
 
 
 /* Summary
    Initial value of early outputs from the state machine.
  */
-#define ALPHA_RESET 0x8
+#define ALPHA_RESET 0xC
 
 
 /* Summary
@@ -55,25 +56,26 @@ uint16_t CyFxGpifTransition[]  = {
  */
 CyU3PGpifWaveData CyFxGpifWavedata[]  = {
     {{0x1E704301,0x000302C4,0x80000000},{0x00000000,0x00000000,0x00000000}},
-    {{0x3E704302,0x00000200,0x80000000},{0x00000000,0x00000000,0x00000000}},
-    {{0x1E704301,0x000302C4,0x80000000},{0x3E702704,0x20000200,0xC0100000}},
+    {{0x3E704302,0x00000300,0x80000000},{0x1E704306,0x000302C4,0x80000000}},
+    {{0x1E704301,0x000302C4,0x80000000},{0x3E702704,0x20000300,0xC0100000}},
+    {{0x3E704302,0x00000300,0x80000000},{0x1E704301,0x000302C4,0x80000000}},
     {{0x00000000,0x00000000,0x00000000},{0x00000000,0x00000000,0x00000000}},
-    {{0x00000000,0x00000000,0x00000000},{0x2E738705,0x00000200,0xC0100000}},
-    {{0x00000000,0x00000000,0x00000000},{0x4E702703,0x20030202,0x80000000}},
-    {{0x00000000,0x00000000,0x00000000},{0x3E702704,0x20000200,0xC0100000}}
+    {{0x00000000,0x00000000,0x00000000},{0x2E738705,0x00000300,0xC0100000}},
+    {{0x00000000,0x00000000,0x00000000},{0x4E702703,0x20030302,0x80000000}},
+    {{0x00000000,0x00000000,0x00000000},{0x3E702704,0x20000300,0xC0100000}}
 };
 
 /* Summary
    Table that maps state indices to the descriptor table indices.
  */
 uint8_t CyFxGpifWavedataPosition[]  = {
-    0,1,0,2,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-    3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-    0,4,0,2,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-    3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-    0,5,0,2,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-    3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,
-    0,6,0,2,0,0
+    0,1,0,2,0,0,3,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+    0,5,0,2,0,0,5,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+    0,6,0,2,0,0,6,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+    4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,
+    0,7,0,2,0,0,7
 };
 
 /* Summary
@@ -91,7 +93,7 @@ uint32_t CyFxGpifRegValue[]  = {
     0x00000782,  /*  CY_U3P_PIB_GPIF_SERIAL_OUT_CONFIG */
     0x00000100,  /*  CY_U3P_PIB_GPIF_CTRL_BUS_DIRECTION */
     0x0000FFFF,  /*  CY_U3P_PIB_GPIF_CTRL_BUS_DEFAULT */
-    0x0000009E,  /*  CY_U3P_PIB_GPIF_CTRL_BUS_POLARITY */
+    0x0000008E,  /*  CY_U3P_PIB_GPIF_CTRL_BUS_POLARITY */
     0x00000000,  /*  CY_U3P_PIB_GPIF_CTRL_BUS_TOGGLE */
     0x00000000,  /*  CY_U3P_PIB_GPIF_CTRL_BUS_SELECT */
     0x00000000,  /*  CY_U3P_PIB_GPIF_CTRL_BUS_SELECT */
@@ -150,7 +152,7 @@ uint32_t CyFxGpifRegValue[]  = {
     0x00000000,  /*  CY_U3P_PIB_GPIF_LAMBDA_STAT */
     0x00000000,  /*  CY_U3P_PIB_GPIF_ALPHA_STAT */
     0x00000000,  /*  CY_U3P_PIB_GPIF_BETA_STAT */
-    0x00080000,  /*  CY_U3P_PIB_GPIF_WAVEFORM_CTRL_STAT */
+    0x000C0000,  /*  CY_U3P_PIB_GPIF_WAVEFORM_CTRL_STAT */
     0x00000000,  /*  CY_U3P_PIB_GPIF_WAVEFORM_SWITCH */
     0x00000000,  /*  CY_U3P_PIB_GPIF_WAVEFORM_SWITCH_TIMEOUT */
     0x00000000,  /*  CY_U3P_PIB_GPIF_CRC_CONFIG */
