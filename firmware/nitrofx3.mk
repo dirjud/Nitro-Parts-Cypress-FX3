@@ -59,7 +59,7 @@ EXEEXT		= elf
 # Command Shortcuts
 COMPILE		= $(CC) $(CCFLAGS) -c -o $@ $< 
 ASSEMBLE	= $(AS) $(ASMFLAGS) -o $@ $<
-LINK		= $(LD) $+ $(LDFLAGS) -o $@
+LINK		= $(LD) $(A_OBJECT) $(C_OBJECT) $(LDFLAGS) -o $@
 BDLIB		= $(AR) -r $@ $+
 ELF2IMG         = $(CYFX3SDK)/util/elf2img/elf2img
 GEN_IMAGE       = $(ELF2IMG)  -i $< -o $@ -imgtype 0xB0 -i2cconf 0x1E
