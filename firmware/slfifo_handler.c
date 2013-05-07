@@ -164,14 +164,6 @@ CyU3PReturnStatus_t slfifo_setup(void) {
     return apiRetStatus;
   }
 
-   /* Start the state machine. */
-  apiRetStatus = CyU3PGpifSMStart (RESET, ALPHA_RESET);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PGpifSMStart failed, Error Code = %d\n",apiRetStatus);
-    error_handler(apiRetStatus);    
-  }
-  log_debug ( "gpif started\n" );
-
   gSlFifoActive = CyTrue;
   log_debug("S\n");
   return apiRetStatus;
@@ -180,7 +172,6 @@ CyU3PReturnStatus_t slfifo_setup(void) {
 /* This function tears down the DMA channels setup for CPU type handlers. */
 void slfifo_teardown(void) {
   log_debug("TEARDOWN\n");
-  CyU3PGpifDisable(CyFalse); // no force reload
   /* Destroy the channels */
   CyU3PDmaChannelDestroy (&glChHandlePtoU);
   CyU3PDmaChannelDestroy (&glChHandleUtoP);
@@ -214,6 +205,13 @@ void slfifo_init(void) {
     error_handler(apiRetStatus);
   }
 
-   CyU3PGpifDisable(CyFalse); // no force reload
+   /* Start the state machine. */
+  apiRetStatus = CyU3PGpifSMStart (RESET, ALPHA_RESET);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PGpifSMStart failed, Error Code = %d\n",apiRetStatus);
+    error_handler(apiRetStatus);    
+  }
+  log_debug ( "gpif started\n" );
+
 
 }
