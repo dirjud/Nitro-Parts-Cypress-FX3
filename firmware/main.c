@@ -14,6 +14,7 @@
 #include "error_handler.h"
 #include "cyu3gpio.h"
 #include "slfifo_handler.h"
+#include "cpu_handler.h"
 
 
 #include "log.h"
@@ -119,7 +120,7 @@ void init_gpio (void) {
 
 /*    apiRetStatus = CyU3PDeviceGpioOverride (23, CyTrue);*/
 /*    if (apiRetStatus != 0) {*/
-/*        /* Error Handling * / */
+/*        / * Error Handling * / */
 /*      log_error("CyU3PDeviceGpioOverride failed, code = %d\n", apiRetStatus);*/
 /*      error_handler(apiRetStatus);*/
 /*    } */
