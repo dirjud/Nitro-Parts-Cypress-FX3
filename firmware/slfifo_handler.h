@@ -13,7 +13,6 @@
 
 /* Called at the start of any newly received cpu handler. */
 void slfifo_cmd_start();
-void slfifo_cmd_end();
 
 /* This function sets up the DMA channels to pipe data to and from the
  * CPU so that cpu handlers can deals with it. */

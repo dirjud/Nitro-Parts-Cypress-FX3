@@ -10,7 +10,6 @@
 
 /* Called at the start of any newly received cpu handler. */
 void cpu_handler_cmd_start();
-void cpu_handler_cmd_end();
 
 uint16_t cpu_handler_dmacb(); 
 

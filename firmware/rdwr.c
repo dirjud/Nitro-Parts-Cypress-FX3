@@ -32,7 +32,6 @@ void rdwr_teardown() {
 /******************************************************************************/
 CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   CyU3PReturnStatus_t status;
-  io_handler_t *prev_handler = gRdwrCmd.handler;
 
   //log_debug("Entering handleRDWR\n");
   if (bReqType != 0x40 || wLength != sizeof(rdwr_data_header_t)) {
@@ -48,13 +47,12 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   }
   CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, glEp0Buffer, sizeof(gRdwrCmd.header) );
 
-  gRdwrCmd.done    = 0;
-  gRdwrCmd.handler = NULL;
 
   /* Flush the endpoint memory */
   CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
   CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
 
+  io_handler_t *new_handler = NULL;
 
   // Select the appropriate handler. Any handler specified with term_addr of
   // 0 is considered the wild card handler and will prevent any handlers
@@ -63,31 +61,27 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   while(io_handlers[i].type != HANDLER_TYPE_TERMINATOR) {
     if(io_handlers[i].term_addr == gRdwrCmd.header.term_addr ||
        io_handlers[i].term_addr == 0) { 
-      gRdwrCmd.handler = &(io_handlers[i]);
+      new_handler = &(io_handlers[i]);
       //log_debug("Found handler %d\n", i);
       break;
     }
     i++;
   }
   
-  // if there is a previous handler, call the previous handler types
+  // if we are switching handlers, uninit the previous handler
   // uninit function
-  if(prev_handler) {
-    switch(gRdwrCmd.handler->type) {
-    case HANDLER_TYPE_CPU:
-      cpu_handler_cmd_end();
-      break;
-    case HANDLER_TYPE_SLAVE_FIFO:
-      slfifo_cmd_end();
-      break;
+  if(gRdwrCmd.handler != new_handler) {
+    if (gRdwrCmd.handler && gRdwrCmd.handler->uninit_handler) {
+        gRdwrCmd.handler->uninit_handler();
     }
   }
 
   // first tear down previous handlers DMA channels
-  if(prev_handler && (
-	!gRdwrCmd.handler || 
- 	gRdwrCmd.handler->type != prev_handler->type )) {
-    switch(prev_handler->type) {
+  // only if we're switching handler types
+  if(gRdwrCmd.handler && (
+	!new_handler || 
+ 	gRdwrCmd.handler->type != new_handler->type )) {
+    switch(gRdwrCmd.handler->type) {
     case HANDLER_TYPE_CPU:
       cpu_handler_teardown();
       break;
@@ -101,6 +95,10 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
       break;
     }
   }
+  
+  gRdwrCmd.done    = 0;
+  gRdwrCmd.handler = new_handler;
+
 
   // now setup the new handler types DMA channels
   if(gRdwrCmd.handler) {

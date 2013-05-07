@@ -102,13 +102,6 @@ void cpu_handler_cmd_start() {
 
 }
 
-void cpu_handler_cmd_end() {
-  if(gRdwrCmd.handler->uninit_handler) {
-    gRdwrCmd.handler->uninit_handler();
-  }
-}
-
-
 uint16_t cpu_handler_dmacb() {
 
     CyU3PReturnStatus_t ret;
