@@ -851,6 +851,14 @@ void CyFxNitroApplnInit (void) {
 
   log_debug("Entering CyFxNitroApplnInit\n");
 
+  int i=0;
+  while (io_handlers[i].type != HANDLER_TYPE_TERMINATOR) {
+    if (io_handlers[i].boot_handler) {
+        io_handlers[i].boot_handler(io_handlers[i].term_addr);
+    }
+    ++i;
+  }
+
   slfifo_init();
 
   /* Start the USB functionality. */
