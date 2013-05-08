@@ -97,6 +97,7 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   }
   
   gRdwrCmd.done    = 0;
+  gRdwrCmd.transfered_so_far = 0;
   gRdwrCmd.handler = new_handler;
 
 

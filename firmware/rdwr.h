@@ -11,6 +11,7 @@ typedef struct {
   io_handler_t *handler;       // current io_handler
   uint16_t ep_buffer_size;     // usb end point buffer size
   uint8_t done;                // has this command been handled?
+  uint32_t transfered_so_far;  // used by handler to know how much data it has transfered so far
 } rdwr_cmd_t;
 
 CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,

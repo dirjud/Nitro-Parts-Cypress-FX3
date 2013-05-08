@@ -14,7 +14,6 @@
 
 CyU3PDmaChannel glChHandleBulkSink; /* DMA MANUAL_IN channel handle.  */
 CyU3PDmaChannel glChHandleBulkSrc;  /* DMA MANUAL_OUT channel handle. */
-uint32_t gTransferedSoFar;  // number of bytes handled/transfered already
 CyBool_t gCpuHandlerActive = CyFalse;
 extern rdwr_cmd_t gRdwrCmd;
 ack_pkt_t gAckPkt;
@@ -22,7 +21,7 @@ ack_pkt_t gAckPkt;
 void cpu_handler_read(CyU3PDmaBuffer_t *buf_p) {
 
   log_debug("C %d\n", buf_p->size);
-  buf_p->count = (gTransferedSoFar + buf_p->size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gTransferedSoFar : buf_p->size;
+  buf_p->count = (gRdwrCmd.transfered_so_far + buf_p->size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gRdwrCmd.transfered_so_far : buf_p->size;
 
   // Call the read handler if the read handler function exists and if
   // the status is still OK. Otherwise, try continuing the data
@@ -31,12 +30,12 @@ void cpu_handler_read(CyU3PDmaBuffer_t *buf_p) {
     gAckPkt.status |= gRdwrCmd.handler->read_handler(buf_p);
   }
 
-  gTransferedSoFar += buf_p->count;  
+  gRdwrCmd.transfered_so_far += buf_p->count;  
   gAckPkt.status |= CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p->count, 0);
   if (gAckPkt.status) {
     log_error ( "gAckPck.status %d\n" );
   }
-  log_debug("R %d/%d\n", gTransferedSoFar, gRdwrCmd.header.transfer_length);
+  log_debug("R %d/%d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length);
 }
 
 void cpu_handler_write(CyU3PDmaBuffer_t *buf_p) {
@@ -44,8 +43,8 @@ void cpu_handler_write(CyU3PDmaBuffer_t *buf_p) {
     gAckPkt.status |= gRdwrCmd.handler->write_handler(buf_p);
   }
   gAckPkt.status |= CyU3PDmaChannelDiscardBuffer(&glChHandleBulkSink);
-  gTransferedSoFar += buf_p->count;
-  log_debug("WRITE %d/%d\n", gTransferedSoFar, gRdwrCmd.header.transfer_length);
+  gRdwrCmd.transfered_so_far += buf_p->count;
+  log_debug("WRITE %d/%d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length);
 }
 
 /* commits the ack packet when any cpu handler is done */
@@ -64,7 +63,6 @@ void cpu_handler_commit_ack() {
 
 /* Called at the start of any newly received cpu handler. */
 void cpu_handler_cmd_start() {
-  gTransferedSoFar = 0;
   gAckPkt.id       = ACK_PKT_ID;
   gAckPkt.checksum = 0;
   gAckPkt.status   = 0;
@@ -106,7 +104,7 @@ uint16_t cpu_handler_dmacb() {
 
     CyU3PReturnStatus_t ret;
     CyU3PDmaBuffer_t dmaBuf_p;
-    log_debug ( "DMA cb %d/%d done %d\n", gTransferedSoFar, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
+    log_debug ( "DMA cb %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
 
     if (gRdwrCmd.header.command & bmSETWRITE) {
         // a write
@@ -134,7 +132,7 @@ uint16_t cpu_handler_dmacb() {
         cpu_handler_read(&dmaBuf_p);
     }
     
-    if (gTransferedSoFar >= gRdwrCmd.header.transfer_length) {
+    if (gRdwrCmd.transfered_so_far >= gRdwrCmd.header.transfer_length) {
         cpu_handler_commit_ack();
     }
 

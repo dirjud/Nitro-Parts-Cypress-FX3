@@ -24,7 +24,6 @@
 CyU3PDmaChannel glChHandleCPUtoP;  /* DMA MANUAL_IN channel handle.  */
 CyU3PDmaChannel glChHandleUtoP;  /* DMA MANUAL_IN channel handle.  */
 CyU3PDmaChannel glChHandlePtoU;  /* DMA MANUAL_OUT channel handle. */
-uint32_t gTransferedSoFar;  // number of bytes handled/transfered already
 
 extern rdwr_cmd_t gRdwrCmd;
 
@@ -108,8 +107,57 @@ void slfifo_cmd_start() {
 
   // drop FLAGC to tell FPGA the new command is ready
   CyU3PGpioSetValue (23, CyFalse);  /* Set the GPIO 23 to high */
-  
+}
 
+void usb2gpif_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
+		 CyU3PDmaCbType_t  type,      /* Callback type.             */
+		 CyU3PDmaCBInput_t *input)    /* Callback status.           */{
+
+  uint16_t index;
+  CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+    
+  if (type == CY_U3P_DMA_CB_PROD_EVENT) {
+    status = CyU3PDmaChannelCommitBuffer (chHandle, input->buffer_p.count, 0);
+    if (status != CY_U3P_SUCCESS)        {
+      log_error("CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", status);
+    }
+    gRdwrCmd.transfered_so_far += input->buffer_p.count;
+    if(gRdwrCmd.transfered_so_far >= gRdwrCmd.header.transfer_length) {
+      gRdwrCmd.done = 1;
+    }
+  }
+  log_debug ( "WRITE SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
+}
+
+void gpif2usb_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
+		 CyU3PDmaCbType_t  type,      /* Callback type.             */
+		 CyU3PDmaCBInput_t *input)    /* Callback status.           */{
+
+  uint16_t index;
+  CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+    
+  if (type == CY_U3P_DMA_CB_PROD_EVENT) {
+    uint32_t new_total = input->buffer_p.count + gRdwrCmd.transfered_so_far;
+
+    // Make sure this is not the ack packet.
+    if(!gRdwrCmd.done) { 
+      // Because the FPGA can only transfer in multiples of 4 bytes,
+      // check if this is the last packet and truncate it as necessary
+      // to match what the host requested
+      if(new_total >= gRdwrCmd.header.transfer_length) {
+	log_debug("truncating %d %d\n", input->buffer_p.count, new_total - gRdwrCmd.header.transfer_length);
+	input->buffer_p.count -= new_total - gRdwrCmd.header.transfer_length;
+	gRdwrCmd.done = 1;
+      }
+    }
+    status = CyU3PDmaChannelCommitBuffer (chHandle, input->buffer_p.count, 0);
+    if (status != CY_U3P_SUCCESS)        {
+      log_error("CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", status);
+    }
+    gRdwrCmd.transfered_so_far += input->buffer_p.count;
+  }
+
+  log_debug ( "READ SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
 }
 
 CyU3PReturnStatus_t slfifo_setup(void) {
@@ -126,16 +174,18 @@ CyU3PReturnStatus_t slfifo_setup(void) {
 
   dmaCfg.size           = gRdwrCmd.ep_buffer_size;
   dmaCfg.count          = 2;
-  dmaCfg.prodSckId      = CY_FX_PRODUCER_PPORT_SOCKET;
-  dmaCfg.consSckId      = CY_FX_EP_CONSUMER_SOCKET;//CY_U3P_CPU_SOCKET_CONS;
   dmaCfg.dmaMode        = CY_U3P_DMA_MODE_BYTE;
-  dmaCfg.notification   = 0;
-  dmaCfg.cb             = 0;
   dmaCfg.prodHeader     = 0;
   dmaCfg.prodFooter     = 0;
   dmaCfg.consHeader     = 0;
   dmaCfg.prodAvailCount = 0;
-  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, CY_U3P_DMA_TYPE_AUTO, &dmaCfg);
+
+  /* Create a DMA MANUAL channel for P2U transfer. */
+  dmaCfg.prodSckId      = CY_FX_PRODUCER_PPORT_SOCKET;
+  dmaCfg.consSckId      = CY_FX_EP_CONSUMER_SOCKET;
+  dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
+  dmaCfg.cb             = gpif2usb_cb;
+  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate1 failed, Error code = %d\n", apiRetStatus);
     return apiRetStatus;
@@ -144,8 +194,9 @@ CyU3PReturnStatus_t slfifo_setup(void) {
   /* Create a DMA MANUAL channel for U2P transfer. */
   dmaCfg.prodSckId      = CY_FX_EP_PRODUCER_SOCKET;//CY_U3P_CPU_SOCKET_PROD;
   dmaCfg.consSckId      = CY_FX_CONSUMER_PPORT_SOCKET;
-  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_AUTO, &dmaCfg);
-//  //apiRetStatus = CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
+  dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
+  dmaCfg.cb             = usb2gpif_cb;
+  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate2 failed, Error code = %d\n", apiRetStatus);
     return apiRetStatus;
