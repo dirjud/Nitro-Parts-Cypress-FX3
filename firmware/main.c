@@ -980,9 +980,33 @@ void CyFxApplicationDefine (void) {
   }
 }
 
+CyU3PReturnStatus_t init_io() {
+  /* Configure the IO matrix for the device. On the FX3 DVK board, the
+   * COM port is connected to the IO(53:56). This means that either
+   * DQ32 mode should be selected or lppMode should be set to
+   * UART_ONLY. Here we are choosing UART_ONLY configuration. */
+  CyU3PIoMatrixConfig_t io_cfg;
+  io_cfg.isDQ32Bit = CyTrue;
+  io_cfg.useUart   = CyTrue;
+  io_cfg.useI2C    = CyTrue;
+  io_cfg.useI2S    = CyFalse;
+  io_cfg.useSpi    = CyFalse;
+  io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
+  
+  // TODO these could change on different boards
+  // 23 = HICS for fpga
+  // 26 = LP_B
+  // 27 = V18_EN
+  // 57 = prog_b for the fpga
+  io_cfg.gpioSimpleEn[0]  = (1 << 23) | (1<<26) | (1<<27);
+  io_cfg.gpioSimpleEn[1]  = (1 << (57-32));
+  io_cfg.gpioComplexEn[0] = 0;
+  io_cfg.gpioComplexEn[1] = 0;
+  return  CyU3PDeviceConfigureIOMatrix (&io_cfg);
+}
+
 /* Main function */
 int main (void) {
-  CyU3PIoMatrixConfig_t io_cfg;
   CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
   /* Initialize the device */
@@ -1004,27 +1028,7 @@ int main (void) {
     goto handle_fatal_error;
   }
 
-  /* Configure the IO matrix for the device. On the FX3 DVK board, the
-   * COM port is connected to the IO(53:56). This means that either
-   * DQ32 mode should be selected or lppMode should be set to
-   * UART_ONLY. Here we are choosing UART_ONLY configuration. */
-  io_cfg.isDQ32Bit = CyTrue;
-  io_cfg.useUart   = CyTrue;
-  io_cfg.useI2C    = CyTrue;
-  io_cfg.useI2S    = CyFalse;
-  io_cfg.useSpi    = CyFalse;
-  io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
-
-  // TODO these could change on different boards
-  // 23 = HICS for fpga
-  // 26 = LP_B
-  // 27 = V18_EN
-  // 57 = prog_b for the fpga
-  io_cfg.gpioSimpleEn[0]  = (1 << 23) | (1<<26) | (1<<27);
-  io_cfg.gpioSimpleEn[1]  = (1 << (57-32));
-  io_cfg.gpioComplexEn[0] = 0;
-  io_cfg.gpioComplexEn[1] = 0;
-  status = CyU3PDeviceConfigureIOMatrix (&io_cfg);
+  status = init_io();
   if (status != CY_U3P_SUCCESS) {
     goto handle_fatal_error;
   }
