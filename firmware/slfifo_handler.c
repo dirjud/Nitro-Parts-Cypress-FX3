@@ -109,38 +109,36 @@ void slfifo_cmd_start() {
   CyU3PGpioSetValue (23, CyFalse);  /* Set the GPIO 23 to high */
 }
 
-void usb2gpif_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
-		 CyU3PDmaCbType_t  type,      /* Callback type.             */
-		 CyU3PDmaCBInput_t *input)    /* Callback status.           */{
-
-  uint16_t index;
-  CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
-    
-  if (type == CY_U3P_DMA_CB_PROD_EVENT) {
-    status = CyU3PDmaChannelCommitBuffer (chHandle, input->buffer_p.count, 0);
-    if (status != CY_U3P_SUCCESS)        {
-      log_error("CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", status);
-    }
-    gRdwrCmd.transfered_so_far += input->buffer_p.count;
-    if(gRdwrCmd.transfered_so_far >= gRdwrCmd.header.transfer_length) {
-      gRdwrCmd.done = 1;
-    }
-  }
-  log_debug ( "WRITE SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
-}
+//void usb2gpif_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
+//		 CyU3PDmaCbType_t  type,      /* Callback type.             */
+//		 CyU3PDmaCBInput_t *input)    /* Callback status.           */{
+//
+//  CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+//    
+//  if (type == CY_U3P_DMA_CB_PROD_EVENT) {
+//    status = CyU3PDmaChannelCommitBuffer (chHandle, input->buffer_p.count, 0);
+//    if (status != CY_U3P_SUCCESS)        {
+//      log_error("CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", status);
+//    }
+//    gRdwrCmd.transfered_so_far += input->buffer_p.count;
+//    if(gRdwrCmd.transfered_so_far >= gRdwrCmd.header.transfer_length) {
+//      gRdwrCmd.done = 1;
+//    }
+//  }
+//  log_debug ( "WRITE SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
+//}
 
 void gpif2usb_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
 		 CyU3PDmaCbType_t  type,      /* Callback type.             */
 		 CyU3PDmaCBInput_t *input)    /* Callback status.           */{
 
-  uint16_t index;
   CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
     
   if (type == CY_U3P_DMA_CB_PROD_EVENT) {
     uint32_t new_total = input->buffer_p.count + gRdwrCmd.transfered_so_far;
 
     // Make sure this is not the ack packet.
-    if(!gRdwrCmd.done) { 
+    if(!gRdwrCmd.done && (gRdwrCmd.header.command == COMMAND_READ || gRdwrCmd.header.command == COMMAND_GET)) { 
       // Because the FPGA can only transfer in multiples of 4 bytes,
       // check if this is the last packet and truncate it as necessary
       // to match what the host requested
@@ -191,12 +189,19 @@ CyU3PReturnStatus_t slfifo_setup(void) {
     return apiRetStatus;
   }
 
-  /* Create a DMA MANUAL channel for U2P transfer. */
+  /* Create a DMA AUTO channel for U2P transfer. The writes can be auto because
+   it just works regardless of whether the transfer size is a multiple of 4
+  bytes. The read transfers have to be manual so that the buffer size can be
+  truncated to the appropriate length if a transfer that is not a multiple of 
+  4 is requested. */
   dmaCfg.prodSckId      = CY_FX_EP_PRODUCER_SOCKET;//CY_U3P_CPU_SOCKET_PROD;
   dmaCfg.consSckId      = CY_FX_CONSUMER_PPORT_SOCKET;
-  dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
-  dmaCfg.cb             = usb2gpif_cb;
-  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
+  //dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
+  //dmaCfg.cb             = usb2gpif_cb;
+  dmaCfg.notification   = 0;
+  dmaCfg.cb             = 0;
+
+  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_AUTO, &dmaCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate2 failed, Error code = %d\n", apiRetStatus);
     return apiRetStatus;
