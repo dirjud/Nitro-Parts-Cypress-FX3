@@ -238,7 +238,7 @@ void slfifo_init(void) {
   CyU3PPibClock_t pibClock;
 
   /* Initialize the p-port block. */
-  pibClock.clkDiv = 15;
+  pibClock.clkDiv = 8;
   pibClock.clkSrc = CY_U3P_SYS_CLK;
   pibClock.isHalfDiv = CyFalse;
   /* Disable DLL for sync GPIF */
