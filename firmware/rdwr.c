@@ -48,9 +48,6 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, glEp0Buffer, sizeof(gRdwrCmd.header) );
 
 
-  /* Flush the endpoint memory */
-  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
 
   io_handler_t *new_handler = NULL;
 
