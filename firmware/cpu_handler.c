@@ -76,26 +76,6 @@ void cpu_handler_cmd_start() {
   }
 
 
-  /* reset our bulk channels */
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSink);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSrc);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
-
-  /* Set DMA Channel transfer size to infinite */
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-  }
-
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-  }
 
 
 }
@@ -187,6 +167,28 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
     error_handler(apiRetStatus);
+  }
+
+
+  /* reset our bulk channels */
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSink);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSrc);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
+
+  /* Set DMA Channel transfer size to infinite */
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
+  }
+
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
   }
 
   gCpuHandlerActive = CyTrue;
