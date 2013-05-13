@@ -53,33 +53,7 @@ void slfifo_cmd_start() {
     log_error("GpifSMSwitch failed, Error Code = %d\n",apiRetStatus);
   }
 
-  // reset all the dma channels in prep for this new command
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandlePtoU);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandleUtoP);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandleCPUtoP);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
 
-  /* Set DMA channel transfer size for each channel. */
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandlePtoU, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer1 Failed, Error code = %d\n", apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleUtoP, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer2 Failed, Error code = %d\n", apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleCPUtoP, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer3 Failed, Error code = %d\n", apiRetStatus);
-  }
 
   // Stop the GPIF state machine for this new command.
 //  CyU3PGpifDisable(CyFalse);
@@ -218,6 +192,34 @@ CyU3PReturnStatus_t slfifo_setup(void) {
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate3 failed, Error code = %d\n", apiRetStatus);
     return apiRetStatus;
+  }
+  
+  // reset all the dma channels in prep for this new command
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandlePtoU);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandleUtoP);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandleCPUtoP);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
+
+  /* Set DMA channel transfer size for each channel. */
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandlePtoU, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer1 Failed, Error code = %d\n", apiRetStatus);
+  }
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleUtoP, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer2 Failed, Error code = %d\n", apiRetStatus);
+  }
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleCPUtoP, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer3 Failed, Error code = %d\n", apiRetStatus);
   }
 
   gSlFifoActive = CyTrue;
