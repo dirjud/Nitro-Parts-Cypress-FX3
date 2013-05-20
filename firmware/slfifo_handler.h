@@ -16,7 +16,7 @@ void slfifo_cmd_start();
 
 /* This function sets up the DMA channels to pipe data to and from the
  * CPU so that cpu handlers can deals with it. */
-CyU3PReturnStatus_t slfifo_setup(void);
+CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoCommit);
 
 /* This function tears down the DMA channels setup for CPU type handlers. */
 void slfifo_teardown(void);

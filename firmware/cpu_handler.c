@@ -125,71 +125,79 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
-  if (gCpuHandlerActive) {
-    log_debug ( "Cpu handler already active.\n" );
-    return CY_U3P_SUCCESS; // not an error if we're already set up
-  }
+//  if (gCpuHandlerActive) {
+//    log_debug ( "Cpu handler already active.\n" );
+//    return CY_U3P_SUCCESS; // not an error if we're already set up
+//  }
+  log_debug ( "cpu_handler setup\n" );
+  
 
-  /* Create a DMA MANUAL_IN channel for the producer socket. */
-  CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
+  if (!gCpuHandlerActive) {
 
-  /* The buffer size will be same as packet size for the full speed,
-   * high speed and super speed non-burst modes.  For super speed
-   * burst mode of operation, the buffers will be 1024 * burst length
-   * so that a full burst can be completed.  This will mean that a
-   * buffer will be available only after it has been filled or when a
-   * short packet is received. */
-  dmaCfg.size  = gRdwrCmd.ep_buffer_size;
-  /* Multiply the buffer size with the multiplier for performance
-   * improvement. */
-  dmaCfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
-  dmaCfg.count     = 4;
-  dmaCfg.prodSckId = CY_FX_EP_PRODUCER_SOCKET;
-  dmaCfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
-  dmaCfg.dmaMode   = CY_U3P_DMA_MODE_BYTE;
-  dmaCfg.notification = 0; //0xFFFF; //CY_U3P_DMA_CB_PROD_EVENT | CY_U3P_DMA_CB_CONS_EVENT;
-  dmaCfg.cb = 0; //cpu_handler_callback;
-  dmaCfg.prodHeader = 0;
-  dmaCfg.prodFooter = 0;
-  dmaCfg.consHeader = 0;
-  dmaCfg.prodAvailCount = 0;
+      /* Create a DMA MANUAL_IN channel for the producer socket. */
+      CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
 
-  apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSink, CY_U3P_DMA_TYPE_MANUAL_IN, &dmaCfg);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
-    error_handler(apiRetStatus);
-  }
+      /* The buffer size will be same as packet size for the full speed,
+       * high speed and super speed non-burst modes.  For super speed
+       * burst mode of operation, the buffers will be 1024 * burst length
+       * so that a full burst can be completed.  This will mean that a
+       * buffer will be available only after it has been filled or when a
+       * short packet is received. */
+      dmaCfg.size  = gRdwrCmd.ep_buffer_size;
+      /* Multiply the buffer size with the multiplier for performance
+       * improvement. */
+      dmaCfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
+      dmaCfg.count     = 4;
+      dmaCfg.prodSckId = CY_FX_EP_PRODUCER_SOCKET;
+      dmaCfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
+      dmaCfg.dmaMode   = CY_U3P_DMA_MODE_BYTE;
+      dmaCfg.notification = 0; //0xFFFF; //CY_U3P_DMA_CB_PROD_EVENT | CY_U3P_DMA_CB_CONS_EVENT;
+      dmaCfg.cb = 0; //cpu_handler_callback;
+      dmaCfg.prodHeader = 0;
+      dmaCfg.prodFooter = 0;
+      dmaCfg.consHeader = 0;
+      dmaCfg.prodAvailCount = 0;
 
-  /* Create a DMA MANUAL_OUT channel for the consumer socket. */
-  dmaCfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
-  dmaCfg.consSckId = CY_FX_EP_CONSUMER_SOCKET;
-  apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSrc, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
-    error_handler(apiRetStatus);
-  }
+      apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSink, CY_U3P_DMA_TYPE_MANUAL_IN, &dmaCfg);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
+        error_handler(apiRetStatus);
+      }
 
+      /* Create a DMA MANUAL_OUT channel for the consumer socket. */
+      dmaCfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
+      dmaCfg.consSckId = CY_FX_EP_CONSUMER_SOCKET;
+      apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSrc, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
+        error_handler(apiRetStatus);
+      }
 
-  /* reset our bulk channels */
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSink);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSrc);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
+     /* reset our bulk channels */
+      apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSink);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+      }
+      apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSrc);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+      }
 
-  /* Set DMA Channel transfer size to infinite */
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-  }
+      /* Set DMA Channel transfer size to infinite */
+      apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
+      }
 
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-  }
+      apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
+      }
+
+      //  log_debug ( "Sleepy..." );
+      CyU3PThreadSleep(20);
+	      
+  } // end config
 
   gCpuHandlerActive = CyTrue;
 

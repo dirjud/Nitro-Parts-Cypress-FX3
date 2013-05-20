@@ -30,8 +30,14 @@ void rdwr_teardown() {
 }
 
 /******************************************************************************/
-CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
-  CyU3PReturnStatus_t status;
+CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
+  CyU3PReturnStatus_t status=CY_U3P_SUCCESS;
+
+  // NOTE wValue == term_addr
+  // wIndex == 16 bits of transfer_length
+  // wIndex is a hint for slave fifo if we need auto or manual mode
+  
+  log_debug ( "term addr: %d wIndex %d\n", wValue, wIndex );
 
   //log_debug("Entering handleRDWR\n");
   if (bReqType != 0x40 || wLength != sizeof(rdwr_data_header_t)) {
@@ -40,29 +46,7 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   }
   
   // flush before rdwr command is acked
-  
-  /* Flush the endpoint memory */
-  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
-
-  
-  // Fetch the rdwr command  
-  status = CyU3PUsbGetEP0Data(wLength, glEp0Buffer, 0);
-
-  // NOTE in the FX3, you can only do one of GetEP0Data, SetEP0Data, Ack or Stall
-  // the successfull read above actually acks the control packet
-  // everything below this point is a race condition with the driver
-  // sending/receiving data for the rdwr command.
-
-  if(status != CY_U3P_SUCCESS){
-    log_error("Error get EP0 Data\n", status);
-    log_error("Flush status = %d\n", CyU3PUsbFlushEp(0));
-    return status;
-  }
-  CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, glEp0Buffer, sizeof(gRdwrCmd.header) );
-
-
-
+ 
   io_handler_t *new_handler = NULL;
 
   // Select the appropriate handler. Any handler specified with term_addr of
@@ -70,10 +54,10 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   // following if from being accessed.
   int i = 0;
   while(io_handlers[i].type != HANDLER_TYPE_TERMINATOR) {
-    if(io_handlers[i].term_addr == gRdwrCmd.header.term_addr ||
+    if(io_handlers[i].term_addr == wValue ||
        io_handlers[i].term_addr == 0) { 
       new_handler = &(io_handlers[i]);
-      //log_debug("Found handler %d\n", i);
+      log_debug("Found handler %d\n", i);
       break;
     }
     i++;
@@ -111,20 +95,21 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
   gRdwrCmd.transfered_so_far = 0;
   gRdwrCmd.handler = new_handler;
 
-
   // now setup the new handler types DMA channels
   if(gRdwrCmd.handler) {
     switch(gRdwrCmd.handler->type) {
     case HANDLER_TYPE_CPU:
+      log_debug ( "setup the cpu handler please\n" );
       status=cpu_handler_setup();
       break;
       
     case HANDLER_TYPE_SLAVE_FIFO:
-      status=slfifo_setup();
+      status=slfifo_setup(wIndex % 4 == 0);
       break;
 
     default:
       // do nothing by default
+      log_warn( "Error no handler\n" );
       break;
     }
   }
@@ -132,7 +117,23 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
     log_error ( "gRdWrCmd.handler failed to setup. %d\n", status );
     return status; 
   }
+  
+  /* Flush the endpoint memory */
+  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
+  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
 
+  CyU3PThreadSleep(20);
+ 
+  // Fetch the rdwr command  
+  // NOTE this api call acks the vendor command if it's successful
+  status = CyU3PUsbGetEP0Data(wLength, glEp0Buffer, 0);
+
+  if(status != CY_U3P_SUCCESS){
+    log_error("Error get EP0 Data\n", status);
+    return status;
+  }
+  
+  CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, glEp0Buffer, sizeof(gRdwrCmd.header) );
 
   // call the new handlers init function, if it exists
   if (gRdwrCmd.handler) {
@@ -235,7 +236,7 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
   switch (bRequest) {
   case VC_HI_RDWR:
     log_debug("Call handle_rdwr\n");
-    status = handle_rdwr(bReqType, wLength);
+    status = handle_rdwr(bReqType, wValue, wIndex, wLength);
     break;
 
   case VC_SERIAL:

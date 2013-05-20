@@ -43,13 +43,8 @@ typedef struct {
 void slfifo_cmd_start() {
   CyU3PReturnStatus_t apiRetStatus;
   CyU3PDmaBuffer_t buf_p;
-  CyBool_t needAutoMode = gRdwrCmd.header.transfer_length % 4 == 0;
 
   if(!gSlFifoActive) { return; }
-  if (needAutoMode != gSlFifoAutoMode) {
-    log_debug ( "Switching auto commit mode to %d\n", needAutoMode ? 1 : 0 );
-    slfifo_setup(); // switch
-  }
 
   // raise FLAGC to tell the FPGA a new command is coming
   CyU3PGpioSetValue (23, CyTrue);
@@ -108,111 +103,118 @@ void gpif2usb_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
   log_debug ( "READ SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
 }
 
-CyU3PReturnStatus_t slfifo_setup(void) {
+CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
   log_debug("S");
   
-  // need auto or manual mode
-  CyBool_t useAutoMode = gRdwrCmd.header.transfer_length % 4 == 0;
+//  if (gSlFifoActive && useAutoMode == gSlFifoAutoMode) {
+//    log_debug ( "slave fifo handler already setup\n" );
+//    return CY_U3P_SUCCESS;  
+//  }
   
-  if (gSlFifoActive && useAutoMode == gSlFifoAutoMode) {
-    log_debug ( "slave fifo handler already setup\n" );
-    return CY_U3P_SUCCESS;  
-  }
-  
-  if (gSlFifoActive) {
-    // case that automode didn't match
-    slfifo_teardown();
-  }
+//  if (gSlFifoActive) {
+//    // case that automode didn't match
+//    slfifo_teardown();
+//  }
   
   log_debug (  "Setting up slfifo for auto mode: %d\n", useAutoMode ? 1 : 0 );
 
-  CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
 
-  dmaCfg.size           = gRdwrCmd.ep_buffer_size;
-  dmaCfg.count          = 2;
-  dmaCfg.dmaMode        = CY_U3P_DMA_MODE_BYTE;
-  dmaCfg.prodHeader     = 0;
-  dmaCfg.prodFooter     = 0;
-  dmaCfg.consHeader     = 0;
-  dmaCfg.prodAvailCount = 0;
-
-
-
-  /* Create a DMA MANUAL channel for P2U transfer. */
-  dmaCfg.prodSckId      = CY_FX_PRODUCER_PPORT_SOCKET;
-  dmaCfg.consSckId      = CY_FX_EP_CONSUMER_SOCKET;
-  dmaCfg.notification   = useAutoMode ? 0 : CY_U3P_DMA_CB_PROD_EVENT;
-  dmaCfg.cb             = useAutoMode ? 0 : gpif2usb_cb;
-  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, useAutoMode ? CY_U3P_DMA_TYPE_AUTO : CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelCreate1 failed, Error code = %d\n", apiRetStatus);
-    return apiRetStatus;
-  }
-
-  /* Create a DMA AUTO channel for U2P transfer. The writes can be auto because
-   it just works regardless of whether the transfer size is a multiple of 4
-  bytes. The read transfers have to be manual so that the buffer size can be
-  truncated to the appropriate length if a transfer that is not a multiple of 
-  4 is requested. */
-  dmaCfg.prodSckId      = CY_FX_EP_PRODUCER_SOCKET;//CY_U3P_CPU_SOCKET_PROD;
-  dmaCfg.consSckId      = CY_FX_CONSUMER_PPORT_SOCKET;
-  //dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
-  //dmaCfg.cb             = usb2gpif_cb;
-  dmaCfg.notification   = 0;
-  dmaCfg.cb             = 0;
-
-  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_AUTO, &dmaCfg);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelCreate2 failed, Error code = %d\n", apiRetStatus);
-    return apiRetStatus;
-  }
-
-  /* Create a DMA MANUAL channel for CPU2P transfer. */
-  dmaCfg.size           = sizeof(slfifo_cmd_t); //gRdwrCmd.ep_buffer_size;
-  dmaCfg.count          = 1;
-  dmaCfg.prodSckId      = CY_U3P_CPU_SOCKET_PROD;
-  dmaCfg.consSckId      = CY_CPU_CONSUMER_PPORT_SOCKET;
-  dmaCfg.notification   = 0;
-  dmaCfg.cb             = 0;
-  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleCPUtoP, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelCreate3 failed, Error code = %d\n", apiRetStatus);
-    return apiRetStatus;
+  if (gSlFifoActive && useAutoMode != gSlFifoAutoMode ) {
+    slfifo_teardown();
   }
   
-  // reset all the dma channels in prep for this new command
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandlePtoU);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandleUtoP);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelReset(&glChHandleCPUtoP);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-  }
+  if (!gSlFifoActive) {
+      CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
 
-  /* Set DMA channel transfer size for each channel. */
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandlePtoU, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer1 Failed, Error code = %d\n", apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleUtoP, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer2 Failed, Error code = %d\n", apiRetStatus);
-  }
-  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleCPUtoP, 0);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PDmaChannelSetXfer3 Failed, Error code = %d\n", apiRetStatus);
+      dmaCfg.size           = gRdwrCmd.ep_buffer_size;
+      dmaCfg.count          = 2;
+      dmaCfg.dmaMode        = CY_U3P_DMA_MODE_BYTE;
+      dmaCfg.prodHeader     = 0;
+      dmaCfg.prodFooter     = 0;
+      dmaCfg.consHeader     = 0;
+      dmaCfg.prodAvailCount = 0;
+
+      /* Create a DMA MANUAL channel for P2U transfer. */
+      dmaCfg.prodSckId      = CY_FX_PRODUCER_PPORT_SOCKET;
+      dmaCfg.consSckId      = CY_FX_EP_CONSUMER_SOCKET;
+      dmaCfg.notification   = useAutoMode ? 0 : CY_U3P_DMA_CB_PROD_EVENT;
+      dmaCfg.cb             = useAutoMode ? 0 : gpif2usb_cb;
+      apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, useAutoMode ? CY_U3P_DMA_TYPE_AUTO : CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelCreate1 failed, Error code = %d\n", apiRetStatus);
+        return apiRetStatus;
+      }
+
+      /* Create a DMA AUTO channel for U2P transfer. The writes can be auto because
+       it just works regardless of whether the transfer size is a multiple of 4
+      bytes. The read transfers have to be manual so that the buffer size can be
+      truncated to the appropriate length if a transfer that is not a multiple of 
+      4 is requested. */
+      dmaCfg.prodSckId      = CY_FX_EP_PRODUCER_SOCKET;//CY_U3P_CPU_SOCKET_PROD;
+      dmaCfg.consSckId      = CY_FX_CONSUMER_PPORT_SOCKET;
+      //dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
+      //dmaCfg.cb             = usb2gpif_cb;
+      dmaCfg.notification   = 0;
+      dmaCfg.cb             = 0;
+
+      apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_AUTO, &dmaCfg);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelCreate2 failed, Error code = %d\n", apiRetStatus);
+        return apiRetStatus;
+      }
+
+      /* Create a DMA MANUAL channel for CPU2P transfer. */
+      dmaCfg.size           = sizeof(slfifo_cmd_t); //gRdwrCmd.ep_buffer_size;
+      dmaCfg.count          = 1;
+      dmaCfg.prodSckId      = CY_U3P_CPU_SOCKET_PROD;
+      dmaCfg.consSckId      = CY_CPU_CONSUMER_PPORT_SOCKET;
+      dmaCfg.notification   = 0;
+      dmaCfg.cb             = 0;
+      apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleCPUtoP, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelCreate3 failed, Error code = %d\n", apiRetStatus);
+        return apiRetStatus;
+      }
+  
+      // reset all the dma channels in prep for this new command
+      apiRetStatus = CyU3PDmaChannelReset(&glChHandlePtoU);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+      }
+      apiRetStatus = CyU3PDmaChannelReset(&glChHandleUtoP);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+      }
+      apiRetStatus = CyU3PDmaChannelReset(&glChHandleCPUtoP);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+      }
+
+      /* Set DMA channel transfer size for each channel. */
+      apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandlePtoU, 0);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelSetXfer1 Failed, Error code = %d\n", apiRetStatus);
+      }
+      apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleUtoP, 0);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelSetXfer2 Failed, Error code = %d\n", apiRetStatus);
+      }
+      apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleCPUtoP, 0);
+      if (apiRetStatus != CY_U3P_SUCCESS) {
+        log_error("CyU3PDmaChannelSetXfer3 Failed, Error code = %d\n", apiRetStatus);
+      }
+      
+      //  log_debug ( "Sleepy..." );
+    CyU3PThreadSleep(20);
+
   }
 
   gSlFifoActive = CyTrue;
   gSlFifoAutoMode = useAutoMode;
+  
   log_debug("S\n");
   return apiRetStatus;
 }
