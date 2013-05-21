@@ -38,8 +38,22 @@ CyU3PReturnStatus_t handle_rdwr(bReqType, wLength) {
     log_error("Bad ReqType or length=%d (%d)\n", wLength, sizeof(rdwr_data_header_t));
     return CY_U3P_ERROR_BAD_ARGUMENT;
   }
+  
+  // flush before rdwr command is acked
+  
+  /* Flush the endpoint memory */
+  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
+  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
+
+  
   // Fetch the rdwr command  
   status = CyU3PUsbGetEP0Data(wLength, glEp0Buffer, 0);
+
+  // NOTE in the FX3, you can only do one of GetEP0Data, SetEP0Data, Ack or Stall
+  // the successfull read above actually acks the control packet
+  // everything below this point is a race condition with the driver
+  // sending/receiving data for the rdwr command.
+
   if(status != CY_U3P_SUCCESS){
     log_error("Error get EP0 Data\n", status);
     log_error("Flush status = %d\n", CyU3PUsbFlushEp(0));
@@ -245,9 +259,6 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
     /* This is an unhandled setup command. Stall the EP. */
     log_debug("VC stalled\n" ); // (cmd: %d)\n", bRequest);
     CyU3PUsbStall (0, CyTrue, CyFalse);
-  } else {
-    log_debug("VC Acked\n");
-    CyU3PUsbAckSetup ();
   }
 
   log_debug ( "handle_vendor_cmd exit\n");

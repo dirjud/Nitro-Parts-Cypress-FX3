@@ -28,6 +28,7 @@ CyU3PDmaChannel glChHandlePtoU;  /* DMA MANUAL_OUT channel handle. */
 extern rdwr_cmd_t gRdwrCmd;
 
 CyBool_t gSlFifoActive = CyFalse;
+CyBool_t gSlFifoAutoMode = CyFalse;
 
 /* Called at the start of any newly received cpu handler. */
 typedef struct {
@@ -42,8 +43,13 @@ typedef struct {
 void slfifo_cmd_start() {
   CyU3PReturnStatus_t apiRetStatus;
   CyU3PDmaBuffer_t buf_p;
+  CyBool_t needAutoMode = gRdwrCmd.header.transfer_length % 4 == 0;
 
   if(!gSlFifoActive) { return; }
+  if (needAutoMode != gSlFifoAutoMode) {
+    log_debug ( "Switching auto commit mode to %d\n", needAutoMode ? 1 : 0 );
+    slfifo_setup(); // switch
+  }
 
   // raise FLAGC to tell the FPGA a new command is coming
   CyU3PGpioSetValue (23, CyTrue);
@@ -52,17 +58,6 @@ void slfifo_cmd_start() {
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("GpifSMSwitch failed, Error Code = %d\n",apiRetStatus);
   }
-
-
-
-  // Stop the GPIF state machine for this new command.
-//  CyU3PGpifDisable(CyFalse);
-//
-//  // start the gpif back up
-//  apiRetStatus = CyU3PGpifSMStart(RESET, ALPHA_RESET);
-//  if (apiRetStatus != CY_U3P_SUCCESS) {
-//    log_error("CyU3PGpifSMStart failed, Error Code = %d\n",apiRetStatus);
-//  }
 
   // inject a command packet out to the FPGA
   CyU3PDmaChannelGetBuffer(&glChHandleCPUtoP, &buf_p, CYU3P_NO_WAIT);
@@ -82,25 +77,6 @@ void slfifo_cmd_start() {
   // drop FLAGC to tell FPGA the new command is ready
   CyU3PGpioSetValue (23, CyFalse);  /* Set the GPIO 23 to high */
 }
-
-//void usb2gpif_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
-//		 CyU3PDmaCbType_t  type,      /* Callback type.             */
-//		 CyU3PDmaCBInput_t *input)    /* Callback status.           */{
-//
-//  CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
-//    
-//  if (type == CY_U3P_DMA_CB_PROD_EVENT) {
-//    status = CyU3PDmaChannelCommitBuffer (chHandle, input->buffer_p.count, 0);
-//    if (status != CY_U3P_SUCCESS)        {
-//      log_error("CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", status);
-//    }
-//    gRdwrCmd.transfered_so_far += input->buffer_p.count;
-//    if(gRdwrCmd.transfered_so_far >= gRdwrCmd.header.transfer_length) {
-//      gRdwrCmd.done = 1;
-//    }
-//  }
-//  log_debug ( "WRITE SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
-//}
 
 void gpif2usb_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
 		 CyU3PDmaCbType_t  type,      /* Callback type.             */
@@ -137,10 +113,21 @@ CyU3PReturnStatus_t slfifo_setup(void) {
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
   log_debug("S");
-  if (gSlFifoActive) {
+  
+  // need auto or manual mode
+  CyBool_t useAutoMode = gRdwrCmd.header.transfer_length % 4 == 0;
+  
+  if (gSlFifoActive && useAutoMode == gSlFifoAutoMode) {
     log_debug ( "slave fifo handler already setup\n" );
     return CY_U3P_SUCCESS;  
   }
+  
+  if (gSlFifoActive) {
+    // case that automode didn't match
+    slfifo_teardown();
+  }
+  
+  log_debug (  "Setting up slfifo for auto mode: %d\n", useAutoMode ? 1 : 0 );
 
   CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
 
@@ -152,12 +139,14 @@ CyU3PReturnStatus_t slfifo_setup(void) {
   dmaCfg.consHeader     = 0;
   dmaCfg.prodAvailCount = 0;
 
+
+
   /* Create a DMA MANUAL channel for P2U transfer. */
   dmaCfg.prodSckId      = CY_FX_PRODUCER_PPORT_SOCKET;
   dmaCfg.consSckId      = CY_FX_EP_CONSUMER_SOCKET;
-  dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
-  dmaCfg.cb             = gpif2usb_cb;
-  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
+  dmaCfg.notification   = useAutoMode ? 0 : CY_U3P_DMA_CB_PROD_EVENT;
+  dmaCfg.cb             = useAutoMode ? 0 : gpif2usb_cb;
+  apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, useAutoMode ? CY_U3P_DMA_TYPE_AUTO : CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PDmaChannelCreate1 failed, Error code = %d\n", apiRetStatus);
     return apiRetStatus;
@@ -223,6 +212,7 @@ CyU3PReturnStatus_t slfifo_setup(void) {
   }
 
   gSlFifoActive = CyTrue;
+  gSlFifoAutoMode = useAutoMode;
   log_debug("S\n");
   return apiRetStatus;
 }
