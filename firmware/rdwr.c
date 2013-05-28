@@ -118,11 +118,8 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
     return status; 
   }
   
-  /* Flush the endpoint memory */
-  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
 
-  CyU3PThreadSleep(20);
+//  CyU3PThreadSleep(10);
  
   // Fetch the rdwr command  
   // NOTE this api call acks the vendor command if it's successful

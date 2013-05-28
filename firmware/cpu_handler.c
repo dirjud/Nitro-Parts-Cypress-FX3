@@ -68,15 +68,11 @@ void cpu_handler_cmd_start() {
   gAckPkt.status   = 0;
   gAckPkt.reserved = 0;
 
-  CyU3PReturnStatus_t apiRetStatus;
 
   // Call this handlers init function, if it exists
   if(gRdwrCmd.handler->init_handler) {
     gAckPkt.status |= gRdwrCmd.handler->init_handler();
   }
-
-
-
 
 }
 
@@ -172,33 +168,58 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
         log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
         error_handler(apiRetStatus);
       }
+  }
 
-     /* reset our bulk channels */
-      apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSink);
-      if (apiRetStatus != CY_U3P_SUCCESS) {
-        log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-      }
-      apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSrc);
-      if (apiRetStatus != CY_U3P_SUCCESS) {
-        log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
-      }
+  // NOTE tried only reseting only if new dma channel created 
+  // no effect
+  // so reset always seems more robust
 
-      /* Set DMA Channel transfer size to infinite */
-      apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
-      if (apiRetStatus != CY_U3P_SUCCESS) {
-        log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-      }
+  // NOTE with not always resetting 1MB reads didn't recover after 1-3 tries like gets do
+  //
+  // NOTE flush/reset ep in between dma reset/setXfer seems to have made it behave 
+  // like it does when it first connects but all the time
+  // so did the reset toggle
+  // flush by itself didn't break it
 
-      apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
-      if (apiRetStatus != CY_U3P_SUCCESS) {
-        log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
-      }
+ /* reset our bulk channels */
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSink);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
+  apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSrc);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
+  }
 
-      //  log_debug ( "Sleepy..." );
-      CyU3PThreadSleep(20);
-	      
-  } // end config
+  // cpu term at least seems ok with or
+  // without flushing so leaving for now.
+  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
+  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
 
+
+//  CyU3PUsbResetEp(CY_FX_EP_PRODUCER);
+//  CyU3PUsbResetEp(CY_FX_EP_CONSUMER);
+
+
+  /* Set DMA Channel transfer size to infinite */
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
+  }
+
+  apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSrc, 0);
+  if (apiRetStatus != CY_U3P_SUCCESS) {
+    log_error("CyU3PDmaChannelSetXfer failed, Error code = %d\n", apiRetStatus);
+  }
+  
+// NOTE this made it behave like it did on connect but all the time
+//
+//  CyU3PUsbStall (CY_FX_EP_PRODUCER, CyFalse, CyTrue ); // clear data toggle
+//  CyU3PUsbStall (CY_FX_EP_CONSUMER, CyFalse, CyTrue );
+
+//  log_debug ( "CPU Sleepy..." );
+//  CyU3PThreadSleep(20);
+  
   gCpuHandlerActive = CyTrue;
 
   return apiRetStatus;
