@@ -69,7 +69,10 @@ di=DeviceInterface(
                                    SubReg ( name="major",
                                         width=8,
                                         comment="Nitro protocol major version." )
-                                  ] )
+                                  ] ),
+                Register(name='USB3',
+                         mode='read',
+                         comment="Return 1 if device enumerated in usb3 mode")
              ]
          ),
          fx3_prom_term

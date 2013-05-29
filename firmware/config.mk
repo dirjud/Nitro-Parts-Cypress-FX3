@@ -15,6 +15,7 @@ SOURCE += $(FX3DIR)rdwr.c
 SOURCE += $(FX3DIR)handlers.c
 SOURCE += $(FX3DIR)../../../Microchip/M24XX/fx3/m24xx.c
 SOURCE += $(FX3DIR)main.c 
+SOURCE += $(FX3DIR)fx3_term.c
 
 # add any custom debugging or cflags
 #CCFLAGS := -Dxxx 
