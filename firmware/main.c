@@ -146,6 +146,15 @@ void init_gpio (void) {
       log_error("CyU3PGpioSetSimpleConfig(57) failed, code = %d\n", apiRetStatus);
       error_handler(apiRetStatus);
     }
+    
+    //// drive VCON_EN low 
+    gpioConfig.outValue = CyFalse;
+    apiRetStatus = CyU3PGpioSetSimpleConfig(22, &gpioConfig);
+    if (apiRetStatus != CY_U3P_SUCCESS) {
+      /* Error handling */
+      log_error("CyU3PGpioSetSimpleConfig(22) failed, code = %d\n", apiRetStatus);
+      error_handler(apiRetStatus);
+    }
 
     // TODO - provide customizability in handlers?
     // drive LP_B high
@@ -1006,7 +1015,7 @@ CyU3PReturnStatus_t init_io() {
   // 26 = LP_B
   // 27 = V18_EN
   // 57 = prog_b for the fpga
-  io_cfg.gpioSimpleEn[0]  = (1 << 23) | (1<<26) | (1<<27);
+  io_cfg.gpioSimpleEn[0]  = (1<<22) | (1 << 23) | (1<<26) | (1<<27);
   io_cfg.gpioSimpleEn[1]  = (1 << (57-32));
   io_cfg.gpioComplexEn[0] = 0;
   io_cfg.gpioComplexEn[1] = 0;
