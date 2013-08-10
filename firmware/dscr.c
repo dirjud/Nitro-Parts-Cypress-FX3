@@ -129,7 +129,7 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     0x01,                           /* Configuration number */
     0x00,                           /* COnfiguration string index */
     0x80,                           /* Config characteristics - Bus powered */
-    0x32,                           /* Max power consumption of device (in 8mA unit) : 400mA */
+    USB3_POWER,                     /* Max power consumption of device (in 8mA unit) : 400mA */
 
     /* Interface descriptor */
     0x09,                           /* Descriptor size */
@@ -184,7 +184,7 @@ const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
     0x01,                           /* Configuration number */
     0x00,                           /* COnfiguration string index */
     0x80,                           /* Config characteristics - bus powered */
-    0x32,                           /* Max power consumption of device (in 2mA unit) : 100mA */
+    USB2_POWER,                     /* Max power consumption of device (in 2mA unit) : 100mA */
 
     /* Interface descriptor */
     0x09,                           /* Descriptor size */
@@ -225,7 +225,7 @@ const uint8_t CyFxUSBFSConfigDscr[] __attribute__ ((aligned (32))) =
     0x01,                           /* Configuration number */
     0x00,                           /* COnfiguration string index */
     0x80,                           /* Config characteristics - bus powered */
-    0x32,                           /* Max power consumption of device (in 2mA unit) : 100mA */
+    USB2_POWER,                     /* Max power consumption of device (in 2mA unit) : 100mA */
 
     /* Interface descriptor */
     0x09,                           /* Descriptor size */

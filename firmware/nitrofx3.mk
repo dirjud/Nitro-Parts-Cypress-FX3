@@ -109,6 +109,8 @@ $(GENDIR)/vidpid.h: config.mk
 	@mkdir -p $(GENDIR)
 	@echo "#define VID $(VID)" > $@
 	@echo "#define PID $(PID)" >> $@
+	@echo "#define USB3_POWER $(USB3_POWER)" >> $@
+	@echo "#define USB2_POWER $(USB2_POWER)" >> $@
 
 fx3_terminals.h: ../terminals.py
 	di --header $@ $<
