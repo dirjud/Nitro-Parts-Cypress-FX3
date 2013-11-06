@@ -132,6 +132,12 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
   
   CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, glEp0Buffer, sizeof(gRdwrCmd.header) );
 
+  log_debug ( "rdwr command type: %d, term %d reg %d len %d\n",
+              gRdwrCmd.header.command,
+              gRdwrCmd.header.term_addr,
+              gRdwrCmd.header.reg_addr,
+              gRdwrCmd.header.transfer_length );
+
   // call the new handlers init function, if it exists
   if (gRdwrCmd.handler) {
     switch(gRdwrCmd.handler->type) {
