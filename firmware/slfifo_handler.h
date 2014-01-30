@@ -3,6 +3,17 @@
 
 #include <cyu3error.h>
 
+/* Called at the start of any newly received cpu handler. */
+typedef struct {
+  uint16_t cmd;
+  uint16_t buffer_length;
+  uint16_t term_addr;
+  uint16_t reserved;
+  uint32_t reg_addr;
+  uint32_t transfer_length;
+} slfifo_cmd_t;
+
+
 #define CY_FX_SLFIFO_DMA_BUF_COUNT      (4) /* Bulk channel buffer count */
 //#define CY_FX_BULKSRCSINK_DMA_TX_SIZE        (0) /* DMA transfr size infinite */
 

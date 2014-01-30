@@ -30,22 +30,46 @@ void rdwr_teardown() {
 }
 
 /******************************************************************************/
-CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
-  CyU3PReturnStatus_t status=CY_U3P_SUCCESS;
 
+CyU3PReturnStatus_t ep0_rdwr_setup() {
+    // Fetch the rdwr command  
+    // NOTE this api call acks the vendor command if it's successful
+    CyU3PReturnStatus_t status = CyU3PUsbGetEP0Data(sizeof(rdwr_data_header_t), glEp0Buffer, 0);
+
+    if(status != CY_U3P_SUCCESS){
+      log_error("Error get EP0 Data\n", status);
+      return status;
+    }
+    CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, glEp0Buffer, sizeof(gRdwrCmd.header) );
+    return CY_U3P_SUCCESS;
+}
+
+CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wIndex, uint16_t wLength) {
   // NOTE wValue == term_addr
   // wIndex == 16 bits of transfer_length
   // wIndex is a hint for slave fifo if we need auto or manual mode
+    CyU3PReturnStatus_t status=CY_U3P_SUCCESS;
+     // start a rdwr command based on incoming ep0 traffic
+    //log_debug("Entering handleRDWR\n");
+    if (bReqType != 0x40 || wLength != sizeof(rdwr_data_header_t)) {
+      log_error("Bad ReqType or length=%d (%d)\n", wLength, sizeof(rdwr_data_header_t));
+      return CY_U3P_ERROR_BAD_ARGUMENT;
+    }
   
-  log_debug ( "term addr: %d wIndex %d\n", wValue, wIndex );
+    return start_rdwr ( wValue, wIndex, ep0_rdwr_setup );
+}
 
-  //log_debug("Entering handleRDWR\n");
-  if (bReqType != 0x40 || wLength != sizeof(rdwr_data_header_t)) {
-    log_error("Bad ReqType or length=%d (%d)\n", wLength, sizeof(rdwr_data_header_t));
-    return CY_U3P_ERROR_BAD_ARGUMENT;
-  }
-  
-  // flush before rdwr command is acked
+/*
+ * This command assumes gRdWrCmd is already filled out and ready to run the command.
+ * It simply initializes the correct handler.
+ * It can be called direclty by firmware internal features if the rdwr header is popluated
+ * first.
+ */
+CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_handler rdwr_setup) {
+  CyU3PReturnStatus_t status=CY_U3P_SUCCESS;
+
+ 
+
  
   io_handler_t *new_handler = NULL;
 
@@ -54,7 +78,7 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
   // following if from being accessed.
   int i = 0;
   while(io_handlers[i].type != HANDLER_TYPE_TERMINATOR) {
-    if(io_handlers[i].term_addr == wValue ||
+    if(io_handlers[i].term_addr == term ||
        io_handlers[i].term_addr == 0) { 
       new_handler = &(io_handlers[i]);
       log_debug("Found handler %d\n", i);
@@ -104,7 +128,7 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
       break;
       
     case HANDLER_TYPE_SLAVE_FIFO:
-      status=slfifo_setup(wIndex % 4 == 0);
+      status=slfifo_setup(len_hint % 4 == 0);
       break;
 
     default:
@@ -118,26 +142,16 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
     return status; 
   }
   
-
-//  CyU3PThreadSleep(10);
- 
-  // Fetch the rdwr command  
-  // NOTE this api call acks the vendor command if it's successful
-  status = CyU3PUsbGetEP0Data(wLength, glEp0Buffer, 0);
-
-  if(status != CY_U3P_SUCCESS){
-    log_error("Error get EP0 Data\n", status);
-    return status;
-  }
-  
-  CyU3PMemCopy ( (uint8_t*)&gRdwrCmd.header, glEp0Buffer, sizeof(gRdwrCmd.header) );
+  // NOTE see header.  
+  status = rdwr_setup();
+  if (status) return status; 
 
   log_debug ( "rdwr command type: %d, term %d reg %d len %d\n",
-              gRdwrCmd.header.command,
-              gRdwrCmd.header.term_addr,
-              gRdwrCmd.header.reg_addr,
-              gRdwrCmd.header.transfer_length );
-
+      gRdwrCmd.header.command,
+      gRdwrCmd.header.term_addr,
+      gRdwrCmd.header.reg_addr,
+      gRdwrCmd.header.transfer_length );
+ 
   // call the new handlers init function, if it exists
   if (gRdwrCmd.handler) {
     switch(gRdwrCmd.handler->type) {

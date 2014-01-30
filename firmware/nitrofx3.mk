@@ -22,8 +22,7 @@ EXES = $(MODULE).$(EXEEXT)
 Include	+= -I$(CYFX3SDK)/firmware/u3p_firmware/inc -I. -I$(FX3DIR) -I$(GENDIR) -I../../../Microchip/M24XX/fx3 -I../../../Xilinx/Spartan/fx3
 
 # the common compiler options
-CCFLAGS += -O0 \
-           -DTX_ENABLE_EVENT_TRACE -DCYU3P_FX3=1 \
+CCFLAGS += -DTX_ENABLE_EVENT_TRACE -DCYU3P_FX3=1 \
 		   -D__CYU3P_TX__=1 $(Include)
 
 # the common linker options
@@ -43,9 +42,9 @@ LD	= arm-none-eabi-ld
 AR	= arm-none-eabi-ar
 
 # Arguments
-ASMFLAGS = -Wall -c -mcpu=arm926ej-s -mthumb-interwork -O0 -lgcc	
+ASMFLAGS = -Wall -c -mcpu=arm926ej-s -mthumb-interwork -Os -lgcc	
 
-CCFLAGS	 += -Wall -mcpu=arm926ej-s -mthumb-interwork -O0 -lgcc
+CCFLAGS	 += -Wall -mcpu=arm926ej-s -mthumb-interwork -Os -lgcc
 
 LDFLAGS	 += -T $(GENDIR)/fx3.ld -d --no-wchar-size-warning -Map $(MODULE).map
 

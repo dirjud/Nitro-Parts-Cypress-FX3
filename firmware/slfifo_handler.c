@@ -30,16 +30,6 @@ extern rdwr_cmd_t gRdwrCmd;
 CyBool_t gSlFifoActive = CyFalse;
 CyBool_t gSlFifoAutoMode = CyFalse;
 
-/* Called at the start of any newly received cpu handler. */
-typedef struct {
-  uint16_t cmd;
-  uint16_t buffer_length;
-  uint16_t term_addr;
-  uint16_t reserved;
-  uint32_t reg_addr;
-  uint32_t transfer_length;
-} slfifo_cmd_t;
-
 void slfifo_cmd_start() {
   CyU3PReturnStatus_t apiRetStatus;
   CyU3PDmaBuffer_t buf_p;
