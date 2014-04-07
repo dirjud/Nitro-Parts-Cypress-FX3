@@ -52,14 +52,15 @@ di=DeviceInterface(
             register_list = [
                 Register(name="version",
                          mode="read",
-                         comment="Application Firmware Version"
+                         comment="Application Firmware Version",
+                         subregs=[ SubReg ( name="minor",
+                                        width=8,
+                                        comment="Firmware minor version." ),
+                                   SubReg ( name="major",
+                                        width=8,
+                                        comment="Firmware major version." )
+                                  ]
                 ),
-                Register(name="usbvid",
-                         mode="read",
-                         comment="USB Vendor ID" ),
-                Register(name="usbpid",
-                         mode="read",
-                         comment="USB Product ID" ),
                 Register(name="usbver",
                          mode="read",
                          comment="USB device descriptor information" ,

@@ -6,6 +6,7 @@ VID=0x1fe1
 PID=0x00f0
 USB3_POWER=0x32 # 400ma (8mA units)
 USB2_POWER=0xC8 # 400ma (2mA units)
+FIRMWARE_VERSION=1
 
 # the required assembly files
 SOURCE_ASM = $(CYFX3SDK)/firmware/common/cyfx_gcc_startup.S

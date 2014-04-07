@@ -110,6 +110,7 @@ $(GENDIR)/vidpid.h: config.mk
 	@echo "#define PID $(PID)" >> $@
 	@echo "#define USB3_POWER $(USB3_POWER)" >> $@
 	@echo "#define USB2_POWER $(USB2_POWER)" >> $@
+	@echo "#define FIRMWARE_VERSION $(FIRMWARE_VERSION)" >> $@
 
 fx3_terminals.h: ../terminals.py
 	di --header $@ $<
