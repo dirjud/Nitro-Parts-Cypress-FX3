@@ -78,7 +78,7 @@ def program_new_pcb(fx3_firmware, VID, PID, di_file, fx3_prom_term='FX3_PROM'):
         :param product id of firmware being loaded.
         :param path to di file implemented by firmware.
     """
-    dev=nitro.USBDevice(0x04b4,0xf300)
+    dev=nitro.USBDevice(0x04b4,0x00f3)
     dev.open(0,True)
     program_fx3(dev,fx3_firmware)
     time.sleep(1)
