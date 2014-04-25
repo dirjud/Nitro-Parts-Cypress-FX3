@@ -25,7 +25,6 @@
 
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
-CyU3PDmaChannel glChHandleNitro;       /* DMA Channel handle */
 
 CyU3PEvent glThreadEvent;              /* event to cause app thread to wake up */
 #define NITRO_EVENT_VENDOR_CMD  (1<<0) /* mask for vendor commands */
@@ -397,12 +396,8 @@ CyFxUsbHandleClearFeature (
          * endpoint pipes. */
         if (glIsApplnActive)
         {
-            CyU3PDmaChannelReset (&glChHandleNitro);
-            CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
-            CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
-            CyU3PUsbResetEp (CY_FX_EP_PRODUCER);
-            CyU3PUsbResetEp (CY_FX_EP_CONSUMER);
-            CyU3PDmaChannelSetXfer (&glChHandleNitro, CY_FX_NITRO_DMA_TX_SIZE);
+            log_debug ( "CLEAR EP - rdwr_teardown\n" );
+            rdwr_teardown(); // will be all flushed for new transactions
         }
  
         /* Clear stall on the endpoint. */
