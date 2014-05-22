@@ -800,36 +800,45 @@ void CyFxNitroApplnUSBEventCB (
 //  log_debug("  evtdata : 0x%x\n", evdata);
   switch (evtype) {
   case CY_U3P_USB_EVENT_RESET:
-    log_debug ( "USB RESET\n" );
+    log_info( "USB RESET\n" );
     /* Stop the loop back function. */
+    {
+      uint16_t phy, link;
+      if (!CyU3PUsbGetErrorCounts( &phy, &link )) {
+         if (phy>0||link>0) {
+          log_warn ( "usb phy err=%d link err=%d\n", phy, link );
+         }
+      }
+
+    }
     CyFxNitroApplnStop ();
     /* Drop current U1/U2 enable state values. */
     glUsbDeviceStat = 0;
     break;
   case CY_U3P_USB_EVENT_SUSPEND:
-    log_debug("SUSPEND\n" );
+    log_info("SUSPEND\n" );
     break;
   case CY_U3P_USB_EVENT_VBUS_VALID:
-    log_debug("VBUS VALID\n");
+    log_info("VBUS VALID\n");
     break;
   case CY_U3P_USB_EVENT_VBUS_REMOVED:
-    log_debug( "VBUS POWER REMOVED\n");
+    log_info( "VBUS POWER REMOVED\n");
     break;    
   case CY_U3P_USB_EVENT_DISCONNECT:
-    log_debug ( "USB DISCONNECT\n" );
+    log_info ( "USB DISCONNECT\n" );
     /* Stop the loop back function. */
     CyFxNitroApplnStop ();
     /* Drop current U1/U2 enable state values. */
     glUsbDeviceStat = 0;
     break;
   case CY_U3P_USB_EVENT_SPEED:
-    log_debug ( "USB_EVENT_SPEED\n" );
+    log_info ( "USB_EVENT_SPEED\n" );
     break;
   case CY_U3P_USB_EVENT_EP0_STAT_CPLT:
-    log_debug ( "EP0_STAT_CPLT\n" );
+    log_debug( "EP0_STAT_CPLT\n" );
     break;
   default:
-    log_debug ( "Unhandled %d\n", evtype );
+    log_info ( "Unhandled %d\n", evtype );
     break;
   }
 }
@@ -934,6 +943,18 @@ void NitroAppThread_Entry (uint32_t input) {
                 continue; // do this in a loop until dma cb puts the command back to done
         }
     }
+
+    {
+      uint16_t phy, link;
+      if (!CyU3PUsbGetErrorCounts( &phy, &link )) {
+        if (phy>0||link>0) {
+         log_warn( "usb phy err=%d link err=%d\n", phy, link );
+        }
+      } else {
+         log_warn( "Err phy??\n" ); 
+      }
+    } 
+
 
     ret = CyU3PEventGet(&glThreadEvent, eventMask, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
     if (ret == CY_U3P_SUCCESS) {
