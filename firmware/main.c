@@ -1044,7 +1044,7 @@ int main (void) {
 
   /* Initialize the device */
   CyU3PSysClockConfig_t clockConfig;
-  clockConfig.setSysClk400  = CyTrue;
+  clockConfig.setSysClk400  = CyFalse;
   clockConfig.cpuClkDiv     = 2;
   clockConfig.dmaClkDiv     = 2;
   clockConfig.mmioClkDiv    = 2;
