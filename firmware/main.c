@@ -234,6 +234,8 @@ void CyFxNitroApplnStart (void) {
   CyU3PUSBSpeed_t usbSpeed = CyU3PUsbGetSpeed();
   log_debug("Entering CyFxNitroApplnStart()\n");
 
+  CyU3PUsbLPMDisable(); // no low power state for us.
+
   /* Based on the Bus Speed configure the endpoint packet size */
   log_debug("UsbSpeed: %d\n", usbSpeed);
   switch (usbSpeed) {
@@ -944,6 +946,7 @@ void NitroAppThread_Entry (uint32_t input) {
         }
     }
 
+#ifdef ENABLE_LOGGING
     {
       uint16_t phy, link;
       if (!CyU3PUsbGetErrorCounts( &phy, &link )) {
@@ -954,6 +957,7 @@ void NitroAppThread_Entry (uint32_t input) {
          log_warn( "Err phy??\n" ); 
       }
     } 
+#endif
 
 
     ret = CyU3PEventGet(&glThreadEvent, eventMask, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
