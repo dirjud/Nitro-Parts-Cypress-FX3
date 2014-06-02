@@ -9,7 +9,6 @@ USB2_POWER=0xC8 # 400ma (2mA units)
 FIRMWARE_VERSION=1
 
 # the required assembly files
-SOURCE_ASM = $(CYFX3SDK)/firmware/common/cyfx_gcc_startup.S
 SOURCE += $(FX3DIR)dscr.c 
 SOURCE += $(FX3DIR)error_handler.c
 SOURCE += $(FX3DIR)cpu_handler.c
