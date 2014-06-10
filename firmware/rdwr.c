@@ -25,6 +25,9 @@ void rdwr_teardown() {
     case HANDLER_TYPE_CPU:
       cpu_handler_teardown();
       break;
+    case HANDLER_TYPE_SLAVE_FIFO:
+      slfifo_teardown();
+      break;
     }
   }
 }
@@ -60,10 +63,9 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
 }
 
 /*
- * This command assumes gRdWrCmd is already filled out and ready to run the command.
- * It simply initializes the correct handler.
- * It can be called direclty by firmware internal features if the rdwr header is popluated
- * first.
+ * This function initializes gRdwrCmd and initializes the correct handler.
+ * It can be called directly by firmware internal features needing to start a 
+ * transaction as long as the rdwr_setup function populates gRdwrCmd.header correctly.
  */
 CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_handler rdwr_setup) {
   CyU3PReturnStatus_t status=CY_U3P_SUCCESS;
@@ -142,7 +144,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     return status; 
   }
   
-  // NOTE see header.  
+  // NOTE see function documentation.  
   status = rdwr_setup();
   if (status) return status; 
 

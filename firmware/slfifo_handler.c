@@ -2,6 +2,7 @@
 #include <cyu3system.h>
 #include <cyu3dma.h>
 #include <cyu3gpio.h>
+#include <cyu3usb.h>
 #include "cyu3pib.h"
 #include "rdwr.h"
 
@@ -105,6 +106,32 @@ void gpif2usb_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
   log_debug ( "READ SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
 }
 
+
+void gpif2usb_auto_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
+		 CyU3PDmaCbType_t  type,      /* Callback type.             */
+		 CyU3PDmaCBInput_t *input)    /* Callback status.           */{
+
+  if (!gRdwrCmd.done) {
+     // logging note.. you can do small transactions here with these uncommented 
+     // but the firmware will likely crash for bigger/faster transactions.
+     //log_debug ( "c=%d", input->buffer_p.count ); // count = 0 for write prod events :/
+     // Question: Why add the bufer size instead of 
+     // input->buffer_p.count.
+     // Answer: For AUTO_SIGNAL channels, only the prod events is generated. 
+     //         For read transactions at that time buffer count is valid but
+     //         for write transactions the event occurs when the buffer is created.
+     //         That means for write transactions count is 0.
+     //         So... instead just use the size of the buffer and note that it doesn't
+     //         really matter if the count exceeds transfer length on the last trans,
+     //         we're just interested in the fact that enough data was transfered to set done=1.
+     gRdwrCmd.transfered_so_far += gRdwrCmd.ep_buffer_size;
+     if (gRdwrCmd.transfered_so_far>=gRdwrCmd.header.transfer_length) {
+        gRdwrCmd.done=1;
+        //log_debug ( "SLFIFO TRANS done." );
+     }
+  }
+}
+
 CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
@@ -130,9 +157,9 @@ CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
       /* Create a DMA MANUAL channel for P2U transfer. */
       dmaCfg.prodSckId      = CY_FX_PRODUCER_PPORT_SOCKET;
       dmaCfg.consSckId      = CY_FX_EP_CONSUMER_SOCKET;
-      dmaCfg.notification   = useAutoMode ? 0 : CY_U3P_DMA_CB_PROD_EVENT;
-      dmaCfg.cb             = useAutoMode ? 0 : gpif2usb_cb;
-      apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, useAutoMode ? CY_U3P_DMA_TYPE_AUTO : CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
+      dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
+      dmaCfg.cb             = useAutoMode ? gpif2usb_auto_cb : gpif2usb_cb;
+      apiRetStatus |= CyU3PDmaChannelCreate (&glChHandlePtoU, useAutoMode ? CY_U3P_DMA_TYPE_AUTO_SIGNAL : CY_U3P_DMA_TYPE_MANUAL, &dmaCfg);
       if (apiRetStatus != CY_U3P_SUCCESS) {
         log_error("CyU3PDmaChannelCreate1 failed, Error code = %d\n", apiRetStatus);
         return apiRetStatus;
@@ -145,10 +172,10 @@ CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
       4 is requested. */
       dmaCfg.prodSckId      = CY_FX_EP_PRODUCER_SOCKET;//CY_U3P_CPU_SOCKET_PROD;
       dmaCfg.consSckId      = CY_FX_CONSUMER_PPORT_SOCKET;
-      dmaCfg.notification   = 0;
-      dmaCfg.cb             = 0;
+      dmaCfg.notification   = CY_U3P_DMA_CB_PROD_EVENT;
+      dmaCfg.cb             = gpif2usb_auto_cb;
 
-      apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_AUTO, &dmaCfg);
+      apiRetStatus |= CyU3PDmaChannelCreate (&glChHandleUtoP, CY_U3P_DMA_TYPE_AUTO_SIGNAL, &dmaCfg);
       if (apiRetStatus != CY_U3P_SUCCESS) {
         log_error("CyU3PDmaChannelCreate2 failed, Error code = %d\n", apiRetStatus);
         return apiRetStatus;
