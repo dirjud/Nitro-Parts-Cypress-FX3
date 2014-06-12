@@ -3,7 +3,6 @@
 */
 
 #include "cyu3system.h"
-#include "cyu3os.h"
 #include "cyu3dma.h"
 #include "cyu3error.h"
 #include "cyu3i2c.h"
@@ -15,7 +14,9 @@
 #include "cyu3gpio.h"
 #include "slfifo_handler.h"
 #include "cpu_handler.h"
-
+#ifdef FIRMWARE_DI
+#include "di.h" // fdi handler
+#endif
 
 #include "log.h"
 #ifndef DEBUG_MAIN
@@ -25,9 +26,12 @@
 
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
+CyU3PThread NitroDataThread;
+#ifdef FIRMWARE_DI
+CyU3PThread NitroDIThread;
+#endif
 
 CyU3PEvent glThreadEvent;              /* event to cause app thread to wake up */
-#define NITRO_EVENT_VENDOR_CMD  (1<<0) /* mask for vendor commands */
 
 uint8_t glEp0Buffer[32] __attribute__ ((aligned (32))); /* Buffer used for sending EP0 data.    */
 uint32_t glSetupDat0, glSetupDat1;      /* for handling vendor commands on app thread */
@@ -305,6 +309,7 @@ void CyFxNitroApplnStop (void) {
 
   /* Update the flag. */
   glIsApplnActive = CyFalse;
+  gRdwrCmd.done=1; // just in case
 
   // clean up DMA channels and anything left by current event handler
   rdwr_teardown(); 
@@ -874,6 +879,7 @@ void CyFxNitroApplnInit (void) {
     ++i;
   }
 
+  // TODO this really should be part of the boot_handlers
   slfifo_init();
 
   /* Start the USB functionality. */
@@ -917,6 +923,33 @@ void CyFxNitroApplnInit (void) {
   }
 }
 
+/* Entry function for data thread */
+void NitroDataThread_Entry (uint32_t input) {
+  uint32_t eventStat;
+  gRdwrCmd.done = 1; // not in a command
+  while (CyTrue) {
+    if (!gRdwrCmd.done) {
+        if (gRdwrCmd.handler && gRdwrCmd.handler->type == HANDLER_TYPE_CPU) {
+            if (!cpu_handler_dmacb())
+                continue; // do this in a loop until dma cb puts the command back to done
+        }
+        #ifdef FIRMWARE_DI
+        else if (gRdwrCmd.handler && gRdwrCmd.handler->type == HANDLER_TYPE_FDI) {
+            if (!fdi_handler_dmacb())
+                continue;
+        }
+        #endif
+        else {
+          log_info ( "nD " );
+        }
+    }
+    // sleep if we're not doing anything else the event breaks the sleep so data 
+    // can be handled.
+    CyU3PEventGet(&glThreadEvent, NITRO_EVENT_DATA, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
+  }
+}
+
+
 /* Entry function for the NitroAppThread. */
 void NitroAppThread_Entry (uint32_t input) {
 
@@ -932,19 +965,14 @@ void NitroAppThread_Entry (uint32_t input) {
   /* Initialize the bulk loop application */
   CyFxNitroApplnInit();
 
-  gRdwrCmd.done = 1; // not in a command
 
   log_info ( "Nitro Thread Entry\n" );
   
   for (;;) {
     log_info(".");
 
-    if (!gRdwrCmd.done) {
-        if (gRdwrCmd.handler && gRdwrCmd.handler->type == HANDLER_TYPE_CPU) {
-            if (!cpu_handler_dmacb())
-                continue; // do this in a loop until dma cb puts the command back to done
-        }
-    }
+     if (gRdwrCmd.done) // ensures main thread mutex unlocked
+         RDWR_DONE(CyTrue);
 
 #ifdef ENABLE_LOGGING
     {
@@ -958,7 +986,6 @@ void NitroAppThread_Entry (uint32_t input) {
       }
     } 
 #endif
-
 
     ret = CyU3PEventGet(&glThreadEvent, eventMask, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
     if (ret == CY_U3P_SUCCESS) {
@@ -980,6 +1007,15 @@ void NitroAppThread_Entry (uint32_t input) {
 /*    log_error("%d\n", curState );  */
   }
 }
+
+#ifdef FIRMWARE_DI
+extern void di_main();
+void NitroDIThread_Entry (uint32_t input) {
+  log_info ( "DI Thread Entry" );
+  CyU3PMutexCreate(&gRdwrCmd.rdwr_mutex, CYU3P_NO_INHERIT);
+  di_main(); // defined 
+}
+#endif
 
 /* Application define function which creates the threads. */
 void CyFxApplicationDefine (void) {
@@ -1007,6 +1043,7 @@ void CyFxApplicationDefine (void) {
 				     CYU3P_AUTO_START                         /* Start the Thread immediately */
 				     );
 
+
   /* Check the return code */
   if (ret != 0) {
     /* Thread Creation failed with the error code retThrdCreate */
@@ -1015,6 +1052,40 @@ void CyFxApplicationDefine (void) {
     /* Loop indefinitely */
     while(1);
   }
+
+  ptr = CyU3PMemAlloc (CY_FX_NITRO_THREAD_STACK);
+
+  /* Create the thread for the application */
+  ret = CyU3PThreadCreate (&NitroDataThread, /* Bulk loop App Thread structure */
+				     "22:NitroData",      /* Thread ID and Thread name */
+				     NitroDataThread_Entry, /* Bulk loop App Thread Entry function */
+				     0,      /* No input parameter to thread */
+				     ptr,                                    /* Pointer to the allocated thread stack */
+				     CY_FX_NITRO_THREAD_STACK,               /* Bulk loop App Thread stack size */
+				     CY_FX_NITRO_THREAD_PRIORITY,            /* Bulk loop App Thread priority */
+				     CY_FX_NITRO_THREAD_PRIORITY,            /* Bulk loop App Thread priority */
+				     CYU3P_NO_TIME_SLICE,                    /* No time slice for the application thread */
+				     CYU3P_AUTO_START                        /* Start the Thread immediately */
+				     );
+  if (ret) while(1);
+
+#ifdef FIRMWARE_DI
+ ptr = CyU3PMemAlloc ( CY_FX_NITRO_THREAD_STACK); // memory for another thread 
+ ret = CyU3PThreadCreate (&NitroDIThread, /* Bulk loop App Thread structure */
+				     "22:NitroDI",      /* Thread ID and Thread name */
+				     NitroDIThread_Entry, /* Bulk loop App Thread Entry function */
+				     0,      /* No input parameter to thread */
+				     ptr,                                     /* Pointer to the allocated thread stack */
+				     CY_FX_NITRO_THREAD_STACK,               /* Bulk loop App Thread stack size */
+				     CY_FX_NITRO_THREAD_PRIORITY,            /* Bulk loop App Thread priority */
+				     CY_FX_NITRO_THREAD_PRIORITY,            /* Bulk loop App Thread priority */
+				     CYU3P_NO_TIME_SLICE,                     /* No time slice for the application thread */
+				     CYU3P_AUTO_START                         /* Start the Thread immediately */
+				     );
+ if (ret != 0) {
+   while (1);
+ }
+#endif
 }
 
 CyU3PReturnStatus_t init_io() {

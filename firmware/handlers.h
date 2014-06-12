@@ -113,7 +113,10 @@ typedef uint16_t (*io_handler_chksum_func)();
 enum {
   HANDLER_TYPE_TERMINATOR = 0, // indicates end of io_handler list
   HANDLER_TYPE_CPU,
-  HANDLER_TYPE_SLAVE_FIFO
+  HANDLER_TYPE_SLAVE_FIFO,
+  #ifdef FIRMWARE_DI
+  HANDLER_TYPE_FDI, // should only be used interally
+  #endif
 } handler_type_t;
 
 /**
@@ -123,8 +126,8 @@ enum {
 typedef struct {
   uint8_t type;
   uint16_t term_addr;
-  io_handler_boot_func boot_handler;
-  io_handler_init_func init_handler;
+  io_handler_boot_func boot_handler; // once at boot
+  io_handler_init_func init_handler; // before every transaction
   io_handler_read_func read_handler;
   io_handler_write_func write_handler;
   io_handler_status_func status_handler;

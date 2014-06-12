@@ -15,6 +15,10 @@
 #define log_debug(...) do {} while (0)
 #endif
 
+#ifdef FIRMWARE_DI
+#include <di.h>
+#endif
+
 rdwr_cmd_t gRdwrCmd;
 uint8_t gSerialNum[32] __attribute__ ((aligned (32))); // actually 16 bytes but DMACache requires multiple of 32
 extern uint8_t glEp0Buffer[]; // dma aligned buffer for ep0 read/writes
@@ -31,6 +35,27 @@ void rdwr_teardown() {
     }
   }
 }
+
+#ifdef FIRMWARE_DI
+#define mutex_log(...) do {} while(0)
+//#define mutex_log log_info
+/**
+ * Fact: You can only unlock the mutex from the same thread that started it.
+ * Fact: Slfifo transaction callbacks don't necessarily happen on the same thread.
+ * Problem: slfifo transactions don't necessarily unlock the mutex
+ * Solution: Call RDWR_DONE from the main thread.
+ *           The firmware di thread calls this internally to it's get/set/read/write
+ *           so doesn't have the same issue.
+ **/
+CyBool_t gRdwrLocked; // only true for nitro thread
+void RDWR_DONE(CyBool_t main) {
+  if (!main || gRdwrLocked) {
+   mutex_log( "\n-%cU-\n", main ? 'm' : 'd' );
+   if (main) gRdwrLocked=CyFalse;
+   CyU3PMutexPut ( &gRdwrCmd.rdwr_mutex );
+  }
+}
+#endif
 
 /******************************************************************************/
 
@@ -51,33 +76,56 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
   // NOTE wValue == term_addr
   // wIndex == 16 bits of transfer_length
   // wIndex is a hint for slave fifo if we need auto or manual mode
-    CyU3PReturnStatus_t status=CY_U3P_SUCCESS;
-     // start a rdwr command based on incoming ep0 traffic
+  // start a rdwr command based on incoming ep0 traffic
     //log_debug("Entering handleRDWR\n");
     if (bReqType != 0x40 || wLength != sizeof(rdwr_data_header_t)) {
       log_error("Bad ReqType or length=%d (%d)\n", wLength, sizeof(rdwr_data_header_t));
       return CY_U3P_ERROR_BAD_ARGUMENT;
     }
+
+    RDWR_DONE(CyTrue); // if the last transaction failed go ahead and release the mutex before starting.
   
-    return start_rdwr ( wValue, wIndex, ep0_rdwr_setup );
+    return start_rdwr ( wValue, wIndex, ep0_rdwr_setup
+    #ifdef FIRMWARE_DI
+     , CyFalse
+    #endif
+    );
 }
+
 
 /*
  * This function initializes gRdwrCmd and initializes the correct handler.
  * It can be called directly by firmware internal features needing to start a 
  * transaction as long as the rdwr_setup function populates gRdwrCmd.header correctly.
  */
-CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_handler rdwr_setup) {
-  CyU3PReturnStatus_t status=CY_U3P_SUCCESS;
+
+CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_handler rdwr_setup
+#ifdef FIRMWARE_DI
+ , CyBool_t firmware_di
+#endif
+) {
+  CyU3PReturnStatus_t status;
 
  
-
+ #ifdef FIRMWARE_DI
+   if ((status=CyU3PMutexGet ( &gRdwrCmd.rdwr_mutex, 2000 )) != CY_U3P_SUCCESS) {
+     log_warn ( "Mutex Lock Fail (%c)\n", firmware_di ? 'd' : 'm' );
+     return status;
+   }
+   if (!firmware_di) gRdwrLocked = CyTrue; // track if we're locking from the main thread.
+   mutex_log( "\n-%cL-\n", firmware_di ? 'd' : 'm' );
+ #endif
  
   io_handler_t *new_handler = NULL;
 
   // Select the appropriate handler. Any handler specified with term_addr of
   // 0 is considered the wild card handler and will prevent any handlers
   // following if from being accessed.
+  #ifdef FIRMWARE_DI
+  if (firmware_di) {
+   new_handler = &firmware_di_handler;
+  } else {
+  #endif
   int i = 0;
   while(io_handlers[i].type != HANDLER_TYPE_TERMINATOR) {
     if(io_handlers[i].term_addr == term ||
@@ -88,6 +136,9 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     }
     i++;
   }
+  #ifdef FIRMWARE_DI
+  }
+  #endif
   
   // if we are switching handlers, uninit the previous handler
   // uninit function
@@ -110,6 +161,11 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     case HANDLER_TYPE_SLAVE_FIFO:
       slfifo_teardown();
       break;
+    #ifdef FIRMWARE_DI
+    case HANDLER_TYPE_FDI:
+      fdi_teardown();
+      break;
+    #endif
       
     default:
       // do nothing by default
@@ -132,6 +188,11 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     case HANDLER_TYPE_SLAVE_FIFO:
       status=slfifo_setup(len_hint % 4 == 0);
       break;
+    #ifdef FIRMWARE_DI
+    case HANDLER_TYPE_FDI:
+      status=fdi_setup();
+      break;
+    #endif
 
     default:
       // do nothing by default
@@ -148,7 +209,8 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   status = rdwr_setup();
   if (status) return status; 
 
-  log_debug ( "rdwr command type: %d, term %d reg %d len %d\n",
+  log_debug ( "rdwr command (%c) type: %d, term %d reg %d len %d\n",
+      firmware_di ? 'd' : 'm', 
       gRdwrCmd.header.command,
       gRdwrCmd.header.term_addr,
       gRdwrCmd.header.reg_addr,
@@ -156,15 +218,24 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
  
   // call the new handlers init function, if it exists
   if (gRdwrCmd.handler) {
+    log_debug ( "handler type: %d\n", gRdwrCmd.handler->type );
     switch(gRdwrCmd.handler->type) {
     case HANDLER_TYPE_CPU:
       cpu_handler_cmd_start();
       break;
+    #ifdef FIRMWARE_DI
+    case HANDLER_TYPE_FDI: // uses slave fifo start
+      log_debug ( "FDI start call slfifo start.\n" );
+    #endif
     case HANDLER_TYPE_SLAVE_FIFO:
       slfifo_cmd_start();
       break;
     }
+  } else {
+    log_error ( "Handler is NULL\n" );
   }
+
+  CyU3PEventSet(&glThreadEvent, NITRO_EVENT_DATA, CYU3P_EVENT_OR);
 
   return CY_U3P_SUCCESS;
 }

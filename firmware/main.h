@@ -27,6 +27,7 @@
 
 #include "cyu3types.h"
 #include "cyu3usbconst.h"
+#include "cyu3os.h"
 #include "cyu3externcstart.h"
 
 #define CY_FX_NITRO_DMA_BUF_COUNT      (8)                       /* Bulk loop channel buffer count */
@@ -68,6 +69,10 @@ extern const uint8_t CyFxUSBManufactureDscr[];
 extern const uint8_t CyFxUSBProductDscr[];
 
 void CyFxAppErrorHandler (CyU3PReturnStatus_t apiRetStatus);
+
+extern CyU3PEvent glThreadEvent;       /* event to cause app thread to wake up */
+#define NITRO_EVENT_VENDOR_CMD  (1<<0) /* mask for vendor commands */
+#define NITRO_EVENT_DATA        (1<<1) /* DI transaction started. */
 
 #include "cyu3externcend.h"
 
