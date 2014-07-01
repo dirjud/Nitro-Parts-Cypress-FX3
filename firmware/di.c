@@ -105,7 +105,7 @@ uint16_t fdi_handler_dmacb() {
         log_debug ( "R" );
         ret = CyU3PDmaChannelGetBuffer ( &glChHandleFDI_PtoCPU, &dmaBuf, 500); 
         if (ret) {
-         log_warn ( "No read Buffer\n" );
+         log_warn ( "No read Buffer (%d)\n", ret );
          return ret;
         }
         

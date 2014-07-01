@@ -251,14 +251,10 @@ void CyFxNitroApplnStart (void) {
     gRdwrCmd.ep_buffer_size = 512;
     break;
 
+  default: // NOTE if di_main starts up app then usb speed is invalid.
+           // the value is ignored anyway.
   case  CY_U3P_SUPER_SPEED:
     gRdwrCmd.ep_buffer_size = 1024;
-    break;
-
-  default:
-    gRdwrCmd.ep_buffer_size = 0;
-    log_error("Error! Invalid USB speed.\n");
-    error_handler (CY_U3P_ERROR_FAILURE);
     break;
   }
 
@@ -977,12 +973,14 @@ void NitroAppThread_Entry (uint32_t input) {
 #ifdef ENABLE_LOGGING
     {
       uint16_t phy, link;
-      if (!CyU3PUsbGetErrorCounts( &phy, &link )) {
-        if (phy>0||link>0) {
-         log_warn( "usb phy err=%d link err=%d\n", phy, link );
-        }
-      } else {
-         log_warn( "Err phy??\n" ); 
+      if (CyU3PUsbGetSpeed() == CY_U3P_SUPER_SPEED) {   // no need to check if not plugged in to USB 3
+         if (!CyU3PUsbGetErrorCounts( &phy, &link )) {
+           if (phy>0||link>0) {
+            log_warn( "usb phy err=%d link err=%d\n", phy, link );
+           }
+         } else {
+            log_warn( "Err phy??\n" ); 
+         }
       }
     } 
 #endif
@@ -1011,7 +1009,7 @@ void NitroAppThread_Entry (uint32_t input) {
 #ifdef FIRMWARE_DI
 extern void di_main();
 void NitroDIThread_Entry (uint32_t input) {
-  log_info ( "DI Thread Entry" );
+  log_info ( "DI Thread Entry\n" );
   CyU3PMutexCreate(&gRdwrCmd.rdwr_mutex, CYU3P_NO_INHERIT);
   di_main(); // defined 
 }
