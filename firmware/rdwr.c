@@ -173,8 +173,6 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     }
   }
   
-  gRdwrCmd.done    = 0;
-  gRdwrCmd.transfered_so_far = 0;
   gRdwrCmd.handler = new_handler;
 
   // now setup the new handler types DMA channels
@@ -235,6 +233,8 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     log_error ( "Handler is NULL\n" );
   }
 
+  gRdwrCmd.done    = 0;
+  gRdwrCmd.transfered_so_far = 0;
   CyU3PEventSet(&glThreadEvent, NITRO_EVENT_DATA, CYU3P_EVENT_OR);
 
   return CY_U3P_SUCCESS;
