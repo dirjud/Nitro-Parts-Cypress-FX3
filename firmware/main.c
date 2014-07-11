@@ -802,6 +802,9 @@ void CyFxNitroApplnUSBEventCB (
 //  log_debug("  evtype  : 0x%x\n", evtype);
 //  log_debug("  evtdata : 0x%x\n", evdata);
   switch (evtype) {
+  case CY_U3P_USB_EVENT_CONNECT:
+   log_info ( "USB CONNECT\n" );
+   break;
   case CY_U3P_USB_EVENT_RESET:
     log_info( "USB RESET\n" );
     /* Stop the loop back function. */
@@ -839,6 +842,9 @@ void CyFxNitroApplnUSBEventCB (
     break;
   case CY_U3P_USB_EVENT_EP0_STAT_CPLT:
     log_debug( "EP0_STAT_CPLT\n" );
+    break;
+  case CY_U3P_USB_EVENT_EP_UNDERRUN:
+    log_warn ( "USB DATA UNDERRUN\n" );
     break;
   default:
     log_info ( "Unhandled %d\n", evtype );
@@ -1070,7 +1076,7 @@ void CyFxApplicationDefine (void) {
 #ifdef FIRMWARE_DI
  ptr = CyU3PMemAlloc ( CY_FX_NITRO_THREAD_STACK); // memory for another thread 
  ret = CyU3PThreadCreate (&NitroDIThread, /* Bulk loop App Thread structure */
-				     "22:NitroDI",      /* Thread ID and Thread name */
+				     "23:NitroDI",      /* Thread ID and Thread name */
 				     NitroDIThread_Entry, /* Bulk loop App Thread Entry function */
 				     0,      /* No input parameter to thread */
 				     ptr,                                     /* Pointer to the allocated thread stack */
