@@ -64,7 +64,15 @@ void slfifo_cmd_start() {
 
   slfifo_cmd_t *slfifo_cmd = (slfifo_cmd_t *) (buf_p.buffer);
   slfifo_cmd->cmd             = (gRdwrCmd.header.command & bmSETWRITE) ? 0xC302 : 0xC301;
-  slfifo_cmd->buffer_length   = gRdwrCmd.ep_buffer_size;
+  slfifo_cmd->buffer_length   =  
+  #ifdef FIRMWARE_DI
+  // ep_buffer_size is always 1024 for fdi
+  // in addition ep_buffer_size is not set correctly 
+  // when external power is supplied not via usb cable.
+    (gRdwrCmd.handler && 
+     gRdwrCmd.handler->type == HANDLER_TYPE_FDI) ? 1024 :
+  #endif
+    gRdwrCmd.ep_buffer_size;
   slfifo_cmd->term_addr       = gRdwrCmd.header.term_addr;
   slfifo_cmd->reserved        = 0;
   slfifo_cmd->reg_addr        = gRdwrCmd.header.reg_addr; 
