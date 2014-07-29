@@ -236,6 +236,7 @@ void CyFxNitroApplnStart (void) {
   CyU3PEpConfig_t epCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
   CyU3PUSBSpeed_t usbSpeed = CyU3PUsbGetSpeed();
+  int i;
   log_debug("Entering CyFxNitroApplnStart()\n");
 
   CyU3PUsbLPMDisable(); // no low power state for us.
@@ -289,6 +290,13 @@ void CyFxNitroApplnStart (void) {
   /* Drop current U1/U2 enable state values. */
   glUsbDeviceStat = 0;
 
+
+  i=0;
+  while ( app_init[i].type ) {
+    if (app_init[i].start) app_init[i].start();
+    ++i;
+  }
+
   log_debug("Exiting CyFxNitroApplnStart()\n");
 
 }
@@ -300,6 +308,7 @@ void CyFxNitroApplnStart (void) {
 void CyFxNitroApplnStop (void) {
   CyU3PEpConfig_t epCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
+  int i;
     
   log_debug("Entering CyFxNitroApplnStop()\n");
 
@@ -330,6 +339,11 @@ void CyFxNitroApplnStop (void) {
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
     error_handler (apiRetStatus);
+  }
+  i=0;
+  while ( app_init[i].type ) {
+    if (app_init[i].stop) app_init[i].stop();
+    ++i;
   }
   log_debug ( "Exit ApplnStop\n"  );
 }
@@ -857,15 +871,20 @@ void CyFxNitroApplnInit (void) {
   log_debug("Entering CyFxNitroApplnInit\n");
 
   int i=0;
+  while ( app_init[i].type != APP_INIT_TERMINATOR ) {
+    if (app_init[i].boot) {
+       app_init[i].boot();
+    }
+    ++i;
+  }
+
+  i=0;
   while (io_handlers[i].type != HANDLER_TYPE_TERMINATOR) {
     if (io_handlers[i].boot_handler) {
         io_handlers[i].boot_handler(io_handlers[i].term_addr);
     }
     ++i;
   }
-
-  // TODO this really should be part of the boot_handlers
-  slfifo_init();
 
   /* Start the USB functionality. */
   apiRetStatus = CyU3PUsbStart();
@@ -894,6 +913,8 @@ void CyFxNitroApplnInit (void) {
 
   if (!no_renum) {
     /* Connect the USB Pins with super speed operation enabled. */
+    apiRetStatus = CyU3PUsbSetTxSwing(127); // per Cypress tech phyerr doc
+    log_debug ( "Tx Swing ret: %d\n" , apiRetStatus );
     apiRetStatus = CyU3PConnectState(CyTrue, CyTrue);
     if (apiRetStatus != CY_U3P_SUCCESS) {
       log_error( "USB Connect failed, Error code = %d\n", apiRetStatus);
@@ -913,6 +934,8 @@ void NitroDataThread_Entry (uint32_t input) {
   uint32_t eventStat;
   gRdwrCmd.done = 1; // not in a command
   while (CyTrue) {
+    int i=0;
+
     if (!gRdwrCmd.done) {
         if (gRdwrCmd.handler && gRdwrCmd.handler->type == HANDLER_TYPE_CPU) {
             if (!cpu_handler_dmacb())
@@ -928,6 +951,7 @@ void NitroDataThread_Entry (uint32_t input) {
           log_info ( "nD " );
         }
     }
+
     // sleep if we're not doing anything else the event breaks the sleep so data 
     // can be handled.
     CyU3PEventGet(&glThreadEvent, NITRO_EVENT_DATA, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
@@ -956,8 +980,14 @@ void NitroAppThread_Entry (uint32_t input) {
   for (;;) {
     log_info(".");
 
-     if (gRdwrCmd.done) // ensures main thread mutex unlocked
+     if (gRdwrCmd.done) {// ensures main thread mutex unlocked
          RDWR_DONE(CyTrue);
+         int i=0;
+         while ( app_init[i].type != 0 ) {
+           if (app_init[i].main_loop_cb) app_init[i].main_loop_cb();
+           ++i;
+         }
+     }
 
 #ifdef ENABLE_LOGGING
     {

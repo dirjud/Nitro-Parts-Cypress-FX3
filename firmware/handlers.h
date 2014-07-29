@@ -22,6 +22,33 @@
 #include <cyu3system.h>
 #include "vendor_commands.h"
 
+
+/** API for boot/init callbacks **/
+// called once at boot.
+typedef void (*app_boot)(void);
+// called each time the application starts
+typedef void (*app_start)(void);
+// called each time the applications stops
+typedef void (*app_stop)(void);
+// called every loop in the main thread 
+// only if rdwr is done. (allows check for custom buffers etc)
+typedef void (*app_main_loop_cb)(void);
+
+typedef enum {
+  APP_INIT_TERMINATOR = 0,
+  APP_INIT_VALID = 1
+} app_init_type;
+
+typedef struct {
+  app_init_type type;
+  app_boot boot;
+  app_start start;
+  app_stop stop;
+  app_main_loop_cb main_loop_cb;
+} app_init_t;
+
+extern app_init_t app_init[];
+
 /**
  * API for IO handlers.
  *
