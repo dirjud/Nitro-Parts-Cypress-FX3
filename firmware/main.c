@@ -560,24 +560,7 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
 
         case CY_U3P_USB_STRING_DESCR:
             index = wValue & 0xFF;
-            switch (index)
-            {
-                case 0:
-                    buffer = (uint8_t *)CyFxUSBStringLangIDDscr;
-                    break;
-
-                case 1:
-                    buffer = (uint8_t *)CyFxUSBManufactureDscr;
-                    break;
-
-                case 2:
-                    buffer = (uint8_t *)CyFxUSBProductDscr;
-                    break;
-
-                default:
-                    /* Do nothing. buffer = NULL. */
-                    break;
-            }
+            buffer = CyFxUSBStringPtrs[index];
             length = buffer[0];
             break;
 

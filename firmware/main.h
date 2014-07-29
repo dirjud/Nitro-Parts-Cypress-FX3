@@ -64,9 +64,7 @@ extern const uint8_t CyFxUSBFSConfigDscr[];
 extern const uint8_t CyFxUSBHSConfigDscr[];
 extern const uint8_t CyFxUSBBOSDscr[];
 extern const uint8_t CyFxUSBSSConfigDscr[];
-extern const uint8_t CyFxUSBStringLangIDDscr[];
-extern const uint8_t CyFxUSBManufactureDscr[];
-extern const uint8_t CyFxUSBProductDscr[];
+extern const uint8_t* CyFxUSBStringPtrs[];
 
 void CyFxAppErrorHandler (CyU3PReturnStatus_t apiRetStatus);
 

@@ -287,6 +287,13 @@ const uint8_t CyFxUSBProductDscr[] __attribute__ ((aligned (32))) =
     '3',0x00
 };
 
+/* list all strings in order for main.c to serve them up */
+const uint8_t* CyFxUSBStringPtrs[] = {
+    CyFxUSBStringLangIDDscr,
+    CyFxUSBManufactureDscr,
+    CyFxUSBProductDscr
+};
+
 /* Place this buffer as the last buffer so that no other variable / code shares
  * the same cache line. Do not add any other variables / arrays in this file.
  * This will lead to variables sharing the same cache line. */
