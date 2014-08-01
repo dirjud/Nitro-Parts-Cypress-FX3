@@ -963,7 +963,7 @@ void NitroDataThread_Entry (uint32_t input) {
 void NitroAppThread_Entry (uint32_t input) {
 
   CyU3PReturnStatus_t ret;
-  uint32_t eventMask = NITRO_EVENT_VENDOR_CMD; // can add more events
+  uint32_t eventMask = NITRO_EVENT_VENDOR_CMD|NITRO_EVENT_BREAK; // can add more events
   uint32_t eventStat;
 
   /* Initialize the debug module */
