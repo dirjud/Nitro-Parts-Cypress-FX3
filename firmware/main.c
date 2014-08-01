@@ -574,7 +574,7 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
 
         case CY_U3P_USB_STRING_DESCR:
             index = wValue & 0xFF;
-            buffer = CyFxUSBStringPtrs[index];
+            buffer = (uint8_t*)CyFxUSBStringPtrs[index];
             length = buffer[0];
             break;
 
@@ -934,7 +934,6 @@ void NitroDataThread_Entry (uint32_t input) {
   uint32_t eventStat;
   gRdwrCmd.done = 1; // not in a command
   while (CyTrue) {
-    int i=0;
 
     if (!gRdwrCmd.done) {
         if (gRdwrCmd.handler && gRdwrCmd.handler->type == HANDLER_TYPE_CPU) {
@@ -948,7 +947,7 @@ void NitroDataThread_Entry (uint32_t input) {
         }
         #endif
         else {
-          log_info ( "nD " );
+          log_debug ( "nd " );
         }
     }
 

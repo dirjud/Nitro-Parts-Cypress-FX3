@@ -104,7 +104,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
  , CyBool_t firmware_di
 #endif
 ) {
-  CyU3PReturnStatus_t status;
+  CyU3PReturnStatus_t status=0;
 
  
  #ifdef FIRMWARE_DI
