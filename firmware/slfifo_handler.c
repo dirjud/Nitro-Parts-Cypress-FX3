@@ -272,6 +272,29 @@ CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
   return apiRetStatus;
 }
 
+void slfifo_checkdone() {
+ uint32_t prodCount, consCount;
+ CyU3PDmaState_t state;
+ CyU3PReturnStatus_t status;
+ uint32_t total;
+ if (!gSlFifoActive || gRdwrCmd.done)  return; 
+ // check the tx counts
+ status = CyU3PDmaChannelGetStatus ( &glChHandlePtoU, &state, &prodCount, &consCount );
+ if (status) {
+    log_warn ( "Error reading dma status." );
+    gRdwrCmd.done=1;
+    return;
+ }
+
+ total = gRdwrCmd.header.command & bmSETWRITE ? 8 : gRdwrCmd.header.transfer_length + 8;
+ if ( consCount >= total ) {
+  log_warn ( "Setting gRdwrCmd.done=1 consCount=%d gRdwrCmd.transfered_so_far=%d\n", consCount, 
+      gRdwrCmd.transfered_so_far );
+  gRdwrCmd.done=1; 
+ }
+
+}
+
 /* This function tears down the DMA channels setup for CPU type handlers. */
 void slfifo_teardown(void) {
   log_debug("TEARDOWN\n");

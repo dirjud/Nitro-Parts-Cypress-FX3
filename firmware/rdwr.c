@@ -207,12 +207,17 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   status = rdwr_setup();
   if (status) return status; 
 
-  log_debug ( "rdwr command (%c) type: %d, term %d reg %d len %d\n",
+  log_debug ( "rdwr command (%c) type: %d, term %d reg %d len %d (old done=%d tx=%d)\n",
       firmware_di ? 'd' : 'm', 
       gRdwrCmd.header.command,
       gRdwrCmd.header.term_addr,
       gRdwrCmd.header.reg_addr,
-      gRdwrCmd.header.transfer_length );
+      gRdwrCmd.header.transfer_length,
+      gRdwrCmd.done ? 1 : 0,
+      gRdwrCmd.transfered_so_far );
+
+  gRdwrCmd.done    = 0;
+  gRdwrCmd.transfered_so_far = 0;
  
   // call the new handlers init function, if it exists
   if (gRdwrCmd.handler) {
@@ -233,8 +238,6 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     log_error ( "Handler is NULL\n" );
   }
 
-  gRdwrCmd.done    = 0;
-  gRdwrCmd.transfered_so_far = 0;
   CyU3PEventSet(&glThreadEvent, NITRO_EVENT_DATA, CYU3P_EVENT_OR);
 
   return CY_U3P_SUCCESS;

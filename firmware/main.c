@@ -978,7 +978,8 @@ void NitroAppThread_Entry (uint32_t input) {
   log_info ( "Nitro Thread Entry\n" );
   
   for (;;) {
-    log_info(".");
+     log_debug ( "." );
+     slfifo_checkdone();
 
      if (gRdwrCmd.done) {// ensures main thread mutex unlocked
          RDWR_DONE(CyTrue);
