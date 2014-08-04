@@ -82,7 +82,7 @@ uint16_t fdi_setup() {
    CyU3PDmaChannelSetXfer(&glChHandleCPUtoP, 0);
 
    gFdiHandlerActive = CyTrue;
-   log_info ( "FDI setup: %d\n", status );
+   log_debug( "FDI setup: %d\n", status );
    return status;
 }
 
@@ -194,14 +194,16 @@ uint16_t do_trans( uint8_t cmd, uint16_t term, uint32_t addr, uint8_t* buf, uint
    t0 = CyU3PGetTime();
    time_out = t0+2000;
 
-   log_debug ( "Wait for rdwr..t0=%d to=%d\n", t0, time_out );
+   log_debug( "Wait for rdwr..t0=%d to=%d\n", t0, time_out );
    while ( !gRdwrCmd.done ) {
     if (time_out < CyU3PGetTime()) break;
     CyU3PThreadSleep(1);
    }
-   log_debug ( ".. t=%d\n", CyU3PGetTime() );
+   log_debug( ".. t=%d\n", CyU3PGetTime() );
+   ret=gRdwrCmd.done ? 0 : 1;
+   gRdwrCmd.done=1;
    RDWR_DONE(CyFalse);
-   return gRdwrCmd.done ? 0 : 1;
+   return ret;
 }
 
 uint16_t di_read ( uint16_t term, uint32_t addr, uint8_t *buf, uint32_t len ) {

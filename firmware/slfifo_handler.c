@@ -288,7 +288,7 @@ void slfifo_checkdone() {
 
  total = gRdwrCmd.header.command & bmSETWRITE ? 8 : gRdwrCmd.header.transfer_length + 8;
  if ( consCount >= total ) {
-  log_warn ( "Setting gRdwrCmd.done=1 consCount=%d gRdwrCmd.transfered_so_far=%d\n", consCount, 
+  log_debug ( "Setting gRdwrCmd.done=1 consCount=%d gRdwrCmd.transfered_so_far=%d\n", consCount, 
       gRdwrCmd.transfered_so_far );
   gRdwrCmd.done=1; 
  }

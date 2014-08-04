@@ -1079,8 +1079,8 @@ void CyFxApplicationDefine (void) {
 				     0,      /* No input parameter to thread */
 				     ptr,                                    /* Pointer to the allocated thread stack */
 				     CY_FX_NITRO_THREAD_STACK,               /* Bulk loop App Thread stack size */
-				     CY_FX_NITRO_THREAD_PRIORITY,            /* Bulk loop App Thread priority */
-				     CY_FX_NITRO_THREAD_PRIORITY,            /* Bulk loop App Thread priority */
+				     CY_FX_NITRO_THREAD_PRIORITY+1,            /* Bulk loop App Thread priority */
+				     CY_FX_NITRO_THREAD_PRIORITY+1,            /* Bulk loop App Thread priority */
 				     CYU3P_NO_TIME_SLICE,                    /* No time slice for the application thread */
 				     CYU3P_AUTO_START                        /* Start the Thread immediately */
 				     );
@@ -1094,8 +1094,8 @@ void CyFxApplicationDefine (void) {
 				     0,      /* No input parameter to thread */
 				     ptr,                                     /* Pointer to the allocated thread stack */
 				     CY_FX_NITRO_THREAD_STACK,               /* Bulk loop App Thread stack size */
-				     CY_FX_NITRO_THREAD_PRIORITY,            /* Bulk loop App Thread priority */
-				     CY_FX_NITRO_THREAD_PRIORITY,            /* Bulk loop App Thread priority */
+				     CY_FX_NITRO_THREAD_PRIORITY+2,            /* Bulk loop App Thread priority */
+				     CY_FX_NITRO_THREAD_PRIORITY+2,            /* Bulk loop App Thread priority */
 				     CYU3P_NO_TIME_SLICE,                     /* No time slice for the application thread */
 				     CYU3P_AUTO_START                         /* Start the Thread immediately */
 				     );
