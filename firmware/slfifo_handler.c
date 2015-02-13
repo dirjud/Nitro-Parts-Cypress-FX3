@@ -1,4 +1,5 @@
 #include "slfifo_handler.h"
+#include "fx3_term.h"
 #include <cyu3system.h>
 #include <cyu3dma.h>
 #include <cyu3gpio.h>
@@ -313,9 +314,9 @@ void slfifo_init(void) {
   CyU3PPibClock_t pibClock;
 
   /* Initialize the p-port block. */
-  pibClock.clkDiv = 8;
-  pibClock.clkSrc = CY_U3P_SYS_CLK;
-  pibClock.isHalfDiv = CyFalse;
+  pibClock.clkDiv = fx3_gpif_config.gpif_clk_div;
+  pibClock.clkSrc = fx3_gpif_config.gpif_clk_src;
+  pibClock.isHalfDiv = fx3_gpif_config.gpif_clk_halfdiv;
   /* Disable DLL for sync GPIF */
   pibClock.isDllEnable = CyFalse;
   apiRetStatus = CyU3PPibInit(CyTrue, &pibClock);

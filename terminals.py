@@ -73,7 +73,24 @@ di=DeviceInterface(
                                   ] ),
                 Register(name='USB3',
                          mode='read',
-                         comment="Return 1 if device enumerated in usb3 mode")
+                         comment="Return 1 if device enumerated in usb3 mode"),
+                Register(name="gpif_clk_div",
+                         mode="write",
+                         comment="clock divider for gpif, valid values are 2-1024",
+                         init=8,
+                         type="int"),
+                Register(name="gpif_clk_halfdiv",
+                         mode="write",
+                         init=0,
+                         comment="if 1, gpif divider is half div and provides values from 2.5 to 256.5, else normal divider.",
+                         type="int" ),
+                Register(name="gpif_clk_src",
+                         mode="write",
+                         init="3",
+                         comment="0 = sys_clk/16, 1 = sys_clk/4, 2= sys_clk/2, 3=sys_clk"  ),
+                Register(name="gpif_clk_trigger",
+                         type="trigger",
+                         comment="write to this register to re-initialize gpif interface.  The gpif registers do not cause a gpif reset." )
              ]
          ),
          fx3_prom_term
