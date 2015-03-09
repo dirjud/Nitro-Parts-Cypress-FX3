@@ -196,11 +196,11 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
        * so that a full burst can be completed.  This will mean that a
        * buffer will be available only after it has been filled or when a
        * short packet is received. */
-      dmaCfg.size  = gRdwrCmd.ep_buffer_size;
+      dmaCfg.size  = gRdwrCmd.ep_buffer_size; //* CY_FX_EP_BURST_LENGTH;
       /* Multiply the buffer size with the multiplier for performance
        * improvement. */
       dmaCfg.size *= CY_FX_DMA_SIZE_MULTIPLIER;
-      dmaCfg.count     = 4;
+      dmaCfg.count     = CY_FX_EP_BUF_COUNT;
       dmaCfg.prodSckId = CY_FX_EP_PRODUCER_SOCKET;
       dmaCfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
       dmaCfg.dmaMode   = CY_U3P_DMA_MODE_BYTE;
@@ -213,13 +213,14 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
 
       apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSink, CY_U3P_DMA_TYPE_MANUAL_IN, &dmaCfg);
       if (apiRetStatus != CY_U3P_SUCCESS) {
-        log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
+        log_error("CyU3PDmaChannelCreate MANUAL_IN failed, Error code = %d\n", apiRetStatus);
         error_handler(apiRetStatus);
       }
 
       /* Create a DMA MANUAL_OUT channel for the consumer socket. */
       dmaCfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
       dmaCfg.consSckId = CY_FX_EP_CONSUMER_SOCKET;
+      dmaCfg.size *= CY_FX_EP_BURST_LENGTH; // NOTE only enough memory for IN ep to have burst
       apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSrc, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
       if (apiRetStatus != CY_U3P_SUCCESS) {
         log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);

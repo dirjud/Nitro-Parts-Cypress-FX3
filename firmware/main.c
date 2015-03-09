@@ -1148,7 +1148,7 @@ int main (void) {
   }
 
   /* Initialize the caches. Enable both Instruction and Data caches. */
-  status = CyU3PDeviceCacheControl (CyTrue, CyTrue, CyTrue);
+  status = CyU3PDeviceCacheControl (CyTrue, CyFalse, CyFalse);
   if (status != CY_U3P_SUCCESS) {
     goto handle_fatal_error;
   }

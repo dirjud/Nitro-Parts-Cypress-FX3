@@ -153,7 +153,7 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Super speed endpoint companion descriptor for producer EP */
     0x06,                           /* Descriptor size */
     CY_U3P_SS_EP_COMPN_DESCR,       /* SS endpoint companion descriptor type */
-    0x00,                           /* Max no. of packets in a burst : 0: burst 1 packet at a time */
+    0,                              /* Max no. of packets in a burst : 0: burst 1 packet at a time */
     0x00,                           /* Max streams for bulk EP = 0 (No streams) */
     0x00,0x00,                      /* Service interval for the EP : 0 for bulk */
 
@@ -168,7 +168,7 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Super speed endpoint companion descriptor for consumer EP */
     0x06,                           /* Descriptor size */
     CY_U3P_SS_EP_COMPN_DESCR,       /* SS endpoint companion descriptor type */
-    0x00,                           /* Max no. of packets in a burst : 0: burst 1 packet at a time */
+    (CY_FX_EP_BURST_LENGTH-1),      /* Max no. of packets in a burst : 0: burst 1 packet at a time */
     0x00,                           /* Max streams for bulk EP = 0 (No streams) */
     0x00,0x00                       /* Service interval for the EP : 0 for bulk */
 };

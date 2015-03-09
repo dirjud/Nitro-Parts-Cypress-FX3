@@ -70,10 +70,16 @@ void slfifo_cmd_start() {
   // ep_buffer_size is always 1024 for fdi
   // in addition ep_buffer_size is not set correctly 
   // when external power is supplied not via usb cable.
+  // TODO fix to just re-use the regular dma channel.  no need 
+  // for a cputop channel. (note from cypress tech)
     (gRdwrCmd.handler && 
      gRdwrCmd.handler->type == HANDLER_TYPE_FDI) ? 1024 :
   #endif
-    gRdwrCmd.ep_buffer_size;
+     gRdwrCmd.ep_buffer_size * CY_FX_DMA_SIZE_MULTIPLIER;
+
+  if (!(gRdwrCmd.header.command & bmSETWRITE))
+     slfifo_cmd->buffer_length *= CY_FX_EP_BURST_LENGTH; // reads burst
+
   slfifo_cmd->term_addr       = gRdwrCmd.header.term_addr;
   slfifo_cmd->reserved        = 0;
   slfifo_cmd->reg_addr        = gRdwrCmd.header.reg_addr; 
@@ -190,8 +196,8 @@ CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
       log_debug(  "(Re)Setting up slfifo for auto mode: %d\n", useAutoMode ? 1 : 0 );
       CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
 
-      dmaCfg.size           = gRdwrCmd.ep_buffer_size;
-      dmaCfg.count          = 2;
+      dmaCfg.size           = gRdwrCmd.ep_buffer_size * CY_FX_EP_BURST_LENGTH * CY_FX_DMA_SIZE_MULTIPLIER;
+      dmaCfg.count          = CY_FX_EP_BUF_COUNT;
       dmaCfg.dmaMode        = CY_U3P_DMA_MODE_BYTE;
       dmaCfg.prodHeader     = 0;
       dmaCfg.prodFooter     = 0;
@@ -214,6 +220,7 @@ CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
       bytes. The read transfers have to be manual so that the buffer size can be
       truncated to the appropriate length if a transfer that is not a multiple of 
       4 is requested. */
+      dmaCfg.size           = gRdwrCmd.ep_buffer_size * CY_FX_DMA_SIZE_MULTIPLIER;
       dmaCfg.prodSckId      = CY_FX_EP_PRODUCER_SOCKET;//CY_U3P_CPU_SOCKET_PROD;
       dmaCfg.consSckId      = CY_FX_CONSUMER_PPORT_SOCKET;
       dmaCfg.notification   = 0;
