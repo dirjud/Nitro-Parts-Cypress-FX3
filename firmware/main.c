@@ -297,7 +297,7 @@ void CyFxNitroApplnStart (void) {
     ++i;
   }
 
-  log_debug("Exiting CyFxNitroApplnStart()\n");
+  log_info("CyFxNitroApplnStart() Complete\n");
 
 }
 

@@ -7,11 +7,7 @@
 
 extern rdwr_cmd_t gRdwrCmd;
 
-#warning "This terminal isn't completely implemented"
-
 extern const uint8_t CyFxUSB30DeviceDscr[];
-
-
 
 
 fx3_gpif_config_t fx3_gpif_config = {
@@ -21,25 +17,32 @@ fx3_gpif_config_t fx3_gpif_config = {
 };
 
 uint16_t fx3_read(CyU3PDmaBuffer_t* pBuf) {
-
+    uint16_t ret;
     switch (gRdwrCmd.header.reg_addr) {
        case FX3_VERSION:
-         pBuf->buffer[0] = FIRMWARE_VERSION & 0xff;
-         pBuf->buffer[1] = FIRMWARE_VERSION >> 8;
-         return 0;
+         ret = FIRMWARE_VERSION;
+         break;
        case FX3_USBVER:
-         pBuf->buffer[0] = CyFxUSB30DeviceDscr[12];
-         pBuf->buffer[1] = CyFxUSB30DeviceDscr[13];;
-         return 0;
+         ret= CyFxUSB30DeviceDscr[12]|CyFxUSB30DeviceDscr[13]<<8;
+         break;
        case FX3_USB3:
-       {
-        uint16_t isUsb3 = gRdwrCmd.ep_buffer_size == 1024 ? 1 : 0;
-        CyU3PMemCopy ( pBuf->buffer, (uint8_t*)&isUsb3, 2 );
-        return 0;
-       }
+        ret=gRdwrCmd.ep_buffer_size == 1024 ? 1 : 0;
+        break;
+       case FX3_GPIF_CLK_DIV:
+        ret=fx3_gpif_config.gpif_clk_div; 
+        break;
+       case FX3_GPIF_CLK_HALFDIV:
+        ret=fx3_gpif_config.gpif_clk_halfdiv;
+        break;
+       case FX3_GPIF_CLK_SRC:
+        ret=fx3_gpif_config.gpif_clk_src;
+        break;
+       default:
+           return 1;
     }
+    CyU3PMemCopy ( pBuf->buffer, (uint8_t*)&ret, 2 );
+    return 0;
 
-    return 1;
 }
 
 extern void slfifo_init();

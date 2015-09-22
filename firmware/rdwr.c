@@ -208,7 +208,11 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   if (status) return status; 
 
   log_debug ( "rdwr command (%c) type: %d, term %d reg %d len %d (old done=%d tx=%d)\n",
+#ifdef FIRMWARE_DI
       firmware_di ? 'd' : 'm', 
+#else
+      "m",
+#endif
       gRdwrCmd.header.command,
       gRdwrCmd.header.term_addr,
       gRdwrCmd.header.reg_addr,
