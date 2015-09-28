@@ -14,6 +14,7 @@ fx3_gpif_config_t fx3_gpif_config = {
     .gpif_clk_div=8,
     .gpif_clk_halfdiv=CyFalse,
     .gpif_clk_src= CY_U3P_SYS_CLK,
+    .gpif_drive_strength = CY_U3P_DS_THREE_QUARTER_STRENGTH,
 };
 
 uint16_t fx3_read(CyU3PDmaBuffer_t* pBuf) {
@@ -36,6 +37,9 @@ uint16_t fx3_read(CyU3PDmaBuffer_t* pBuf) {
         break;
        case FX3_GPIF_CLK_SRC:
         ret=fx3_gpif_config.gpif_clk_src;
+        break;
+       case FX3_GPIF_DRIVE_STRENGTH:
+        ret=fx3_gpif_config.gpif_drive_strength;
         break;
        default:
            return 1;
@@ -64,6 +68,10 @@ uint16_t fx3_write(CyU3PDmaBuffer_t* pBuf) {
         case FX3_GPIF_CLK_TRIGGER:
             CyU3PPibDeInit();
             slfifo_init();
+            break;
+        case FX3_GPIF_DRIVE_STRENGTH:
+            fx3_gpif_config.gpif_drive_strength=val;
+            CyU3PSetPportDriveStrength(val);
             break;
         default:
             return 1;

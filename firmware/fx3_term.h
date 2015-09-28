@@ -10,6 +10,7 @@ typedef struct {
   int gpif_clk_div;
   CyBool_t gpif_clk_halfdiv;
   int gpif_clk_src;
+  int gpif_drive_strength;
 } fx3_gpif_config_t;
 
 extern fx3_gpif_config_t fx3_gpif_config;
