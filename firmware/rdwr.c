@@ -211,7 +211,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
 #ifdef FIRMWARE_DI
       firmware_di ? 'd' : 'm', 
 #else
-      "m",
+      'm',
 #endif
       gRdwrCmd.header.command,
       gRdwrCmd.header.term_addr,
