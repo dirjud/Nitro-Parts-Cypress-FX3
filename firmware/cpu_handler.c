@@ -187,7 +187,7 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
 
   if (!gCpuHandlerActive) {
 
-      /* Create a DMA MANUAL_IN channel for the producer socket. */
+      /* Create a DMA MANUAL_IN (USB OUT transfer) channel for the producer socket. */
       CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
 
       /* The buffer size will be same as packet size for the full speed,
@@ -196,7 +196,7 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
        * so that a full burst can be completed.  This will mean that a
        * buffer will be available only after it has been filled or when a
        * short packet is received. */
-      dmaCfg.size      = gRdwrCmd.ep_buffer_size * CY_FX_EP_BURST_LENGTH * CY_FX_DMA_SIZE_MULTIPLIER;
+      dmaCfg.size      = gRdwrCmd.ep_buffer_size * CY_FX_DMA_SIZE_MULTIPLIER;
       dmaCfg.count     = CY_FX_EP_BUF_COUNT;
       dmaCfg.prodSckId = CY_FX_EP_PRODUCER_SOCKET;
       dmaCfg.consSckId = CY_U3P_CPU_SOCKET_CONS;
@@ -214,10 +214,10 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
         error_handler(apiRetStatus);
       }
 
-      /* Create a DMA MANUAL_OUT channel for the consumer socket. */
+      /* Create a DMA MANUAL_OUT (USB IN transfer) channel for the consumer socket. */
       dmaCfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
       dmaCfg.consSckId = CY_FX_EP_CONSUMER_SOCKET;
-      dmaCfg.size  = gRdwrCmd.ep_buffer_size * CY_FX_DMA_SIZE_MULTIPLIER; 
+      dmaCfg.size  = gRdwrCmd.ep_buffer_size * CY_FX_EP_BURST_LENGTH * CY_FX_DMA_SIZE_MULTIPLIER; 
       apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSrc, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
       if (apiRetStatus != CY_U3P_SUCCESS) {
         log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
