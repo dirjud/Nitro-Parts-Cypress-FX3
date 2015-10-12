@@ -49,8 +49,6 @@ void slfifo_cmd_start() {
   }
   log_debug ( "slfifo cmd start\n" );
 
-  // raise FLAGC to tell the FPGA a new command is coming
-  CyU3PGpioSetValue (23, CyTrue);
 
   apiRetStatus = CyU3PGpifSMSwitch(0xFFFF, RESET, 0xFFFF, ALPHA_RESET, 0);
   if (apiRetStatus != CY_U3P_SUCCESS) {
@@ -194,6 +192,9 @@ CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
   log_debug("S a=%d m=%d\n", gSlFifoActive?1:0, useAutoMode?1:0);
+  
+  // raise FLAGC to tell the FPGA a new command is coming
+  CyU3PGpioSetValue (23, CyTrue);
   
   if (gSlFifoActive && useAutoMode != gSlFifoAutoMode ) {
     slfifo_teardown();

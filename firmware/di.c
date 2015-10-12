@@ -36,6 +36,8 @@ extern uint16_t slfifo_setup_cputop();
 uint16_t fdi_setup() {
    CyU3PDmaChannelConfig_t dmaCfg;
    CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
+
+   CyU3PGpioSetValue (23, CyTrue); // reset fpga host interface (slfifo_cmd_start toggles back false.)
  
    if (gFdiHandlerActive) return 0; 
 
