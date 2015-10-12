@@ -121,12 +121,12 @@ void gpif2usb_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
       // check if this is the last packet and truncate it as necessary
       // to match what the host requested
       if(new_total >= gRdwrCmd.header.transfer_length) {
-        log_debug("truncating %d %d\n", input->buffer_p.count, new_total - gRdwrCmd.header.transfer_length);
+        //log_debug("truncating %d %d\n", input->buffer_p.count, new_total - gRdwrCmd.header.transfer_length);
         input->buffer_p.count -= new_total - gRdwrCmd.header.transfer_length;
       }
     }
     status = CyU3PDmaChannelCommitBuffer (chHandle, input->buffer_p.count, 0);
-    log_debug ( "C=%d\n", input->buffer_p.count );
+    //log_debug ( "C=%d\n", input->buffer_p.count );
     if (status != CY_U3P_SUCCESS)        {
       log_error("CyU3PDmaChannelCommitBuffer failed, Error code = %d\n", status);
     }
@@ -136,7 +136,8 @@ void gpif2usb_cb(CyU3PDmaChannel   *chHandle, /* Handle to the DMA channel. */
     }
   }
 
-  log_debug ( "READ SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
+  //if (gRdwrCmd.done) log_debug ( "D=1\n" );
+  //log_debug ( "READ SLFIFO %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
 }
 
 /**
