@@ -77,8 +77,14 @@ void slfifo_cmd_start() {
   #endif
      gRdwrCmd.ep_buffer_size * CY_FX_DMA_SIZE_MULTIPLIER;
 
-  if (!(gRdwrCmd.header.command & bmSETWRITE))
+  if (!(gRdwrCmd.header.command & bmSETWRITE) && gRdwrCmd.ep_buffer_size == 1024
+  #ifdef FIRMWARE_DI
+     && gRdwrCmd.handler->type != HANDLER_TYPE_FDI
+  #endif
+     )
      slfifo_cmd->buffer_length *= CY_FX_EP_BURST_LENGTH; // reads burst
+
+  log_debug ( "slfifo buffer size %d\n", slfifo_cmd->buffer_length );
 
   slfifo_cmd->term_addr       = gRdwrCmd.header.term_addr;
   slfifo_cmd->reserved        = 0;
@@ -197,7 +203,9 @@ CyU3PReturnStatus_t slfifo_setup(CyBool_t useAutoMode) {
       log_debug(  "(Re)Setting up slfifo for auto mode: %d\n", useAutoMode ? 1 : 0 );
       CyU3PMemSet ((uint8_t *)&dmaCfg, 0, sizeof (dmaCfg));
 
-      dmaCfg.size           = gRdwrCmd.ep_buffer_size * CY_FX_EP_BURST_LENGTH * CY_FX_DMA_SIZE_MULTIPLIER;
+      dmaCfg.size           = gRdwrCmd.ep_buffer_size * CY_FX_DMA_SIZE_MULTIPLIER;
+      if (gRdwrCmd.ep_buffer_size == 1024) 
+        dmaCfg.size *= CY_FX_EP_BURST_LENGTH; // usb3 uses burst length
       dmaCfg.count          = CY_FX_EP_BUF_COUNT;
       dmaCfg.dmaMode        = CY_U3P_DMA_MODE_BYTE;
       dmaCfg.prodHeader     = 0;

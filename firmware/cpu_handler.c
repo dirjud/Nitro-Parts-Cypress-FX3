@@ -217,7 +217,8 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
       /* Create a DMA MANUAL_OUT (USB IN transfer) channel for the consumer socket. */
       dmaCfg.prodSckId = CY_U3P_CPU_SOCKET_PROD;
       dmaCfg.consSckId = CY_FX_EP_CONSUMER_SOCKET;
-      dmaCfg.size  = gRdwrCmd.ep_buffer_size * CY_FX_EP_BURST_LENGTH * CY_FX_DMA_SIZE_MULTIPLIER; 
+      if (gRdwrCmd.ep_buffer_size == 1024)
+        dmaCfg.size *= CY_FX_EP_BURST_LENGTH; 
       apiRetStatus = CyU3PDmaChannelCreate (&glChHandleBulkSrc, CY_U3P_DMA_TYPE_MANUAL_OUT, &dmaCfg);
       if (apiRetStatus != CY_U3P_SUCCESS) {
         log_error("CyU3PDmaChannelCreate failed, Error code = %d\n", apiRetStatus);
