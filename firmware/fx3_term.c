@@ -14,7 +14,7 @@ fx3_gpif_config_t fx3_gpif_config = {
     .gpif_clk_div=8,
     .gpif_clk_halfdiv=CyFalse,
     .gpif_clk_src= CY_U3P_SYS_CLK,
-    .gpif_drive_strength = CY_U3P_DS_THREE_QUARTER_STRENGTH,
+    .gpif_drive_strength = CY_U3P_DS_QUARTER_STRENGTH,
 };
 
 uint16_t fx3_read(CyU3PDmaBuffer_t* pBuf) {
