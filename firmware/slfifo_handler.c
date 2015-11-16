@@ -329,32 +329,38 @@ void slfifo_init(void) {
   /* setup gpif interface */
   CyU3PPibClock_t pibClock;
 
-  /* Initialize the p-port block. */
-  pibClock.clkDiv = fx3_gpif_config.gpif_clk_div;
-  pibClock.clkSrc = fx3_gpif_config.gpif_clk_src;
-  pibClock.isHalfDiv = fx3_gpif_config.gpif_clk_halfdiv;
-  /* Disable DLL for sync GPIF */
-  pibClock.isDllEnable = CyFalse;
-  apiRetStatus = CyU3PPibInit(CyTrue, &pibClock);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("P-port Initialization failed, Error Code = %d\n",apiRetStatus);
-    error_handler(apiRetStatus);
-  }
+  if (!fx3_gpif_config.enable) {
+        CyU3PGpifDisable(CyTrue);
+        log_info ( "Gpif disabled\n" );
+  } else {
 
-  /* Load the GPIF configuration for Slave FIFO sync mode. */
-  apiRetStatus = CyU3PGpifLoad (&CyFxGpifConfig);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PGpifLoad failed, Error Code = %d\n",apiRetStatus);
-    error_handler(apiRetStatus);
-  }
+        /* Initialize the p-port block. */
+        pibClock.clkDiv = fx3_gpif_config.gpif_clk_div;
+        pibClock.clkSrc = fx3_gpif_config.gpif_clk_src;
+        pibClock.isHalfDiv = fx3_gpif_config.gpif_clk_halfdiv;
+        /* Disable DLL for sync GPIF */
+        pibClock.isDllEnable = CyFalse;
+        apiRetStatus = CyU3PPibInit(CyTrue, &pibClock);
+        if (apiRetStatus != CY_U3P_SUCCESS) {
+          log_error("P-port Initialization failed, Error Code = %d\n",apiRetStatus);
+          error_handler(apiRetStatus);
+        }
 
-   /* Start the state machine. */
-  apiRetStatus = CyU3PGpifSMStart (RESET, ALPHA_RESET);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    log_error("CyU3PGpifSMStart failed, Error Code = %d\n",apiRetStatus);
-    error_handler(apiRetStatus);    
+        /* Load the GPIF configuration for Slave FIFO sync mode. */
+        apiRetStatus = CyU3PGpifLoad (&CyFxGpifConfig);
+        if (apiRetStatus != CY_U3P_SUCCESS) {
+          log_error("CyU3PGpifLoad failed, Error Code = %d\n",apiRetStatus);
+          error_handler(apiRetStatus);
+        }
+
+         /* Start the state machine. */
+        apiRetStatus = CyU3PGpifSMStart (RESET, ALPHA_RESET);
+        if (apiRetStatus != CY_U3P_SUCCESS) {
+          log_error("CyU3PGpifSMStart failed, Error Code = %d\n",apiRetStatus);
+          error_handler(apiRetStatus);    
+        }
+        log_info ( "gpif started\n" );
   }
-  log_debug ( "gpif started\n" );
 
 
 }

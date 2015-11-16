@@ -977,7 +977,8 @@ void NitroAppThread_Entry (uint32_t input) {
   log_info ( "Nitro Thread Entry\n" );
   
   for (;;) {
-     log_debug ( "." );
+     log_info ( "." );
+     CyU3PSysWatchDogClear();
      slfifo_checkdone();
 
      if (gRdwrCmd.done) {// ensures main thread mutex unlocked
@@ -1085,6 +1086,8 @@ void CyFxApplicationDefine (void) {
 				     CYU3P_AUTO_START                        /* Start the Thread immediately */
 				     );
   if (ret) while(1);
+
+ CyU3PSysWatchDogConfigure ( CyTrue, 2000 );
 
 #ifdef FIRMWARE_DI
  ptr = CyU3PMemAlloc ( CY_FX_NITRO_THREAD_STACK); // memory for another thread 

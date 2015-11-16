@@ -95,6 +95,10 @@ di=DeviceInterface(
                          mode="write",
                          init="0",
                          comment="change the drive strength for the gpif. 0=1/4 strength. 1=1/2 strength, 2=3/4 strenght, 3=full strength." ),
+                Register(name="gpif_enable",
+                         mode="write",
+                         init="1",
+                         comment="Enable or disable the gpif interface entirely." ),
 
              ]
          ),
