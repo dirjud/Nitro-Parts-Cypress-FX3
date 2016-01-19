@@ -17,6 +17,7 @@
 #ifdef FIRMWARE_DI
 #include "di.h" // fdi handler
 #endif
+#include "low_power.h"
 
 #include "log.h"
 #ifndef DEBUG_MAIN
@@ -159,10 +160,9 @@ void init_gpio (void) {
       error_handler(apiRetStatus);
     }
 
-    // TODO - provide customizability in handlers?
-    // drive LP_B high
-    gpioConfig.outValue = CyTrue;
-    apiRetStatus = CyU3PGpioSetSimpleConfig(26, &gpioConfig);
+    // drive LP_B low to set to 1.8V
+    gpioConfig.outValue = LP_B_INITIAL;
+    apiRetStatus = CyU3PGpioSetSimpleConfig(FX3_LP_B, &gpioConfig);
     if (apiRetStatus != CY_U3P_SUCCESS) {
       /* Error handling */
       log_error("CyU3PGpioSetSimpleConfig(26) failed, code = %d\n", apiRetStatus);
