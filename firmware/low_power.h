@@ -5,7 +5,7 @@
 
 // set this to CyFalse to enable low voltage mode. Setting to CyTrue
 // effectively disables low voltage mode
-#define LP_B_INITIAL CyTrue
+#define LP_B_INITIAL CyFalse
 
 #define ENTER_LOW_VOLTAGE_MODE  CyU3PGpioSetValue ( FX3_LP_B, LP_B_INITIAL )
 #define ENTER_HIGH_VOLTAGE_MODE CyU3PGpioSetValue ( FX3_LP_B, CyTrue  )
