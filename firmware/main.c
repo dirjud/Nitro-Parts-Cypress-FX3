@@ -1122,6 +1122,7 @@ CyU3PReturnStatus_t init_io() {
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
   
   // TODO these could change on different boards
+  // 22 = VCON_EN
   // 23 = HICS for fpga
   // 26 = LP_B
   // 27 = V18_EN

@@ -7,7 +7,7 @@
 // effectively disables low voltage mode
 #define LP_B_INITIAL CyFalse
 
-#define ENTER_LOW_VOLTAGE_MODE  CyU3PGpioSetValue ( FX3_LP_B, LP_B_INITIAL )
-#define ENTER_HIGH_VOLTAGE_MODE CyU3PGpioSetValue ( FX3_LP_B, CyTrue  )
+#define ENTER_LOW_VOLTAGE_MODE  do { CyU3PGpioSetValue ( FX3_LP_B, LP_B_INITIAL ); } while (0)
+#define ENTER_HIGH_VOLTAGE_MODE do { CyU3PGpioSetValue ( FX3_LP_B, CyTrue); } while (0)
 
 #endif
