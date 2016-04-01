@@ -109,6 +109,11 @@ uint16_t cpu_handler_dmacb() {
     CyU3PReturnStatus_t ret;
     log_debug ( "DMA cb %d/%d done %d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length, gRdwrCmd.done );
 
+    if (!gCpuHandlerActive) {
+        log_warn ( "handler called when inactive." );
+        return 1;
+    }
+
     if (gRdwrCmd.header.command & bmSETWRITE) {
         // a write
         // wait for a buffer on the producer socket
@@ -140,16 +145,17 @@ uint16_t cpu_handler_dmacb() {
 // flush by itself didn't break it
 
 uint16_t cpu_handler_reset_write() {
+  
+  // cpu term at least seems ok with or
+  // without flushing so leaving for now.
+  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
+
 
  /* reset our bulk channels */
   CyU3PReturnStatus_t apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSink);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
   }
-
-  // cpu term at least seems ok with or
-  // without flushing so leaving for now.
-  CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
 
   /* Set DMA Channel transfer size to infinite */
   apiRetStatus = CyU3PDmaChannelSetXfer (&glChHandleBulkSink, 0);
@@ -160,6 +166,9 @@ uint16_t cpu_handler_reset_write() {
 }
 
 uint16_t cpu_handler_reset_read() {
+
+  CyU3PUsbFlushEp(CY_FX_EP_CONSUMER);
+
   CyU3PReturnStatus_t apiRetStatus = CyU3PDmaChannelReset(&glChHandleBulkSrc);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("Channel Reset Failed, Error Code = %d\n",apiRetStatus);
@@ -245,7 +254,7 @@ CyU3PReturnStatus_t cpu_handler_setup(void) {
 /* This function tears down the DMA channels setup for CPU type handlers. */
 void cpu_handler_teardown(void) {
   /* Destroy the channels */
+  gCpuHandlerActive = CyFalse;
   CyU3PDmaChannelDestroy (&glChHandleBulkSink);
   CyU3PDmaChannelDestroy (&glChHandleBulkSrc);
-  gCpuHandlerActive = CyFalse;
 }

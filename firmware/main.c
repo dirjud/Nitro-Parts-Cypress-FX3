@@ -947,7 +947,7 @@ void NitroDataThread_Entry (uint32_t input) {
         }
         #endif
         else {
-          log_debug ( "nd " );
+          log_debug ( "nd (%d/%d)", gRdwrCmd.transfered_so_far,gRdwrCmd.header.transfer_length );
         }
     }
 

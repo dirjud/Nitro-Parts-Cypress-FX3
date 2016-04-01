@@ -24,6 +24,7 @@ uint8_t gSerialNum[32] __attribute__ ((aligned (32))); // actually 16 bytes but 
 extern uint8_t glEp0Buffer[]; // dma aligned buffer for ep0 read/writes
 
 void rdwr_teardown() {
+  gRdwrCmd.done=1;
   if(gRdwrCmd.handler) {
     switch(gRdwrCmd.handler->type) {
     case HANDLER_TYPE_CPU:
