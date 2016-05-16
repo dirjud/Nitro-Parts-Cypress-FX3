@@ -33,7 +33,7 @@
 //#define CY_FX_NITRO_DMA_BUF_COUNT      (8)                       /* Bulk loop channel buffer count */
 //#define CY_FX_NITRO_DMA_TX_SIZE        (0)                       /* DMA transfer size is set to infinite */
 
-#define CY_FX_EP_BURST_LENGTH          (8)                      /* max burst length */
+#define CY_FX_EP_BURST_LENGTH          (4)                      /* max burst length */
 #define CY_FX_EP_BUF_COUNT             (2)                       /* num ep buffers */
 #define CY_FX_DMA_SIZE_MULTIPLIER   (2)                          /* double buffer size to decrease latency */
 #define CY_FX_NITRO_THREAD_STACK       (0x1000)                  /* Bulk loop application thread stack size */
