@@ -33,7 +33,14 @@
 //#define CY_FX_NITRO_DMA_BUF_COUNT      (8)                       /* Bulk loop channel buffer count */
 //#define CY_FX_NITRO_DMA_TX_SIZE        (0)                       /* DMA transfer size is set to infinite */
 
-#define CY_FX_EP_BURST_LENGTH          (4)                      /* max burst length */
+// NOTE
+// if you find the dma channels failing to be created with error 16
+// (out of memory), you probably forgot to modify the cyfxtx.c in the sdk
+// to change the memory top so that the last 32k of memory reserved for
+// boot os can be used to allocate buffer space.
+// Restated... you must modify the fx3 sdk to get a usable firmware.
+
+#define CY_FX_EP_BURST_LENGTH          (8)                      /* max burst length */
 #define CY_FX_EP_BUF_COUNT             (2)                       /* num ep buffers */
 #define CY_FX_DMA_SIZE_MULTIPLIER   (2)                          /* double buffer size to decrease latency */
 #define CY_FX_NITRO_THREAD_STACK       (0x1000)                  /* Bulk loop application thread stack size */
