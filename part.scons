@@ -1,0 +1,10 @@
+
+Import('env')
+
+xml=env.Diconv ( 'fx3.xml' ,'terminals.py')
+env.DIDepends(xml, 'Microchip/M24XX/M24XX.xml')
+env.Xml(xml)
+
+env.Py('Cypress/fx3', Glob('py/fx3/*'))
+
+
