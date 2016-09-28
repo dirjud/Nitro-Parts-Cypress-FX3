@@ -1,3 +1,5 @@
+XML_DEPS = Microchip/M24XX/M24XX.xml
 
-fx3.xml: terminals.py
-	diconv terminals.py $@ 
+include ../../lib/Makefiles/project.mk
+
+
