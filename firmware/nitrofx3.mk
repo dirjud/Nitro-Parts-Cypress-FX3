@@ -3,18 +3,27 @@ FX3DIR:=$(dir $(lastword $(MAKEFILE_LIST)))
 
 DEPS = fx3_terminals.h
 
+include config.mk
 
 BUILDDIR ?= build
 GENDIR ?= gen
 FX3FWROOT = $(CYFX3SDK)
 #FX3PFWROOT = $(CYFX3SDK)/firmware/u3p_firmware
-CYCONFOPT=fx3_release
-CYDEVICE=CYUSB3011
+CYCONFOPT?=fx3_release
+CYDEVICE?=CYUSB3011
 
+ifeq ($(CYDEVICE),CYUSB3065)
+include $(CYFX3SDK)/fw_build/fx3_fw/cx3_build_config.mak
+else
 include $(CYFX3SDK)/fw_build/fx3_fw/fx3_build_config.mak
-include config.mk
+endif
 
-Include += -I$(GENDIR) -I../../../Microchip/M24XX/fx3 -I../../../Xilinx/Spartan/fx3 -I$(FX3DIR)
+CCFLAGS += $(BUILD_CCFLAGS)
+ifeq ($(CYDEVICE),CYUSB3065)
+CCFLAGS += -DCX3
+endif
+
+Include += -I$(GENDIR) $(INCLUDES) -I$(FX3DIR)
 
 SOURCE += $(FX3FWROOT)/fw_build/fx3_fw/cyfxtx.c
 SOURCE_ASM += $(FX3FWROOT)/fw_build/fx3_fw/cyfx_gcc_startup.S

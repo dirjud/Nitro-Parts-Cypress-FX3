@@ -30,3 +30,4 @@ SOURCE += $(FX3DIR)fx3_term.c
 
 # customize build directory
 #BUILDDIR = build
+INCLUDES = -I../../../Microchip/M24XX/fx3 -I../../../Xilinx/Spartan/fx3 

@@ -130,53 +130,53 @@ void init_gpio (void) {
 /*    } */
 
     /* Configure GPIO 23 as output */
-    gpioConfig.outValue    = CyTrue;
-    gpioConfig.driveLowEn  = CyTrue;
-    gpioConfig.driveHighEn = CyTrue;
-    gpioConfig.inputEn     = CyFalse;
-    gpioConfig.intrMode    = CY_U3P_GPIO_NO_INTR;
-    apiRetStatus = CyU3PGpioSetSimpleConfig(23, &gpioConfig);
-    if (apiRetStatus != CY_U3P_SUCCESS) {
-      /* Error handling */
-      log_error("CyU3PGpioSetSimpleConfig(23) failed, code = %d\n", apiRetStatus);
-      error_handler(apiRetStatus);
-    }
+    // gpioConfig.outValue    = CyTrue;
+    // gpioConfig.driveLowEn  = CyTrue;
+    // gpioConfig.driveHighEn = CyTrue;
+    // gpioConfig.inputEn     = CyFalse;
+    // gpioConfig.intrMode    = CY_U3P_GPIO_NO_INTR;
+    // apiRetStatus = CyU3PGpioSetSimpleConfig(23, &gpioConfig);
+    // if (apiRetStatus != CY_U3P_SUCCESS) {
+    //   /* Error handling */
+    //   log_error("CyU3PGpioSetSimpleConfig(23) failed, code = %d\n", apiRetStatus);
+    //   error_handler(apiRetStatus);
+    // }
     
     // hold prog_b down at app start
-    gpioConfig.outValue=CyFalse;
-    apiRetStatus = CyU3PGpioSetSimpleConfig(57, &gpioConfig);
-    if (apiRetStatus != CY_U3P_SUCCESS) {
-      /* Error handling */
-      log_error("CyU3PGpioSetSimpleConfig(57) failed, code = %d\n", apiRetStatus);
-      error_handler(apiRetStatus);
-    }
+    // gpioConfig.outValue=CyFalse;
+    // apiRetStatus = CyU3PGpioSetSimpleConfig(57, &gpioConfig);
+    // if (apiRetStatus != CY_U3P_SUCCESS) {
+    //    /* Error handling */
+    //   log_error("CyU3PGpioSetSimpleConfig(57) failed, code = %d\n", apiRetStatus);
+    //   error_handler(apiRetStatus);
+    // }
     
     //// drive VCON_EN low 
-    gpioConfig.outValue = CyFalse;
-    apiRetStatus = CyU3PGpioSetSimpleConfig(22, &gpioConfig);
-    if (apiRetStatus != CY_U3P_SUCCESS) {
-      /* Error handling */
-      log_error("CyU3PGpioSetSimpleConfig(22) failed, code = %d\n", apiRetStatus);
-      error_handler(apiRetStatus);
-    }
+    // gpioConfig.outValue = CyFalse;
+    // apiRetStatus = CyU3PGpioSetSimpleConfig(22, &gpioConfig);
+    // if (apiRetStatus != CY_U3P_SUCCESS) {
+    //    //Error handling 
+    //   log_error("CyU3PGpioSetSimpleConfig(22) failed, code = %d\n", apiRetStatus);
+    //   error_handler(apiRetStatus);
+    // }
 
     // drive LP_B low to set to 1.8V
-    gpioConfig.outValue = LP_B_INITIAL;
-    apiRetStatus = CyU3PGpioSetSimpleConfig(FX3_LP_B, &gpioConfig);
-    if (apiRetStatus != CY_U3P_SUCCESS) {
-      /* Error handling */
-      log_error("CyU3PGpioSetSimpleConfig(26) failed, code = %d\n", apiRetStatus);
-      error_handler(apiRetStatus);
-    }
+    // gpioConfig.outValue = LP_B_INITIAL;
+    // apiRetStatus = CyU3PGpioSetSimpleConfig(FX3_LP_B, &gpioConfig);
+    // if (apiRetStatus != CY_U3P_SUCCESS) {
+    //   /* Error handling */
+    //   log_error("CyU3PGpioSetSimpleConfig(26) failed, code = %d\n", apiRetStatus);
+    //   error_handler(apiRetStatus);
+    // }
    
     // drive V18_EN high
-    gpioConfig.outValue = CyTrue;
-    apiRetStatus = CyU3PGpioSetSimpleConfig(27, &gpioConfig);
-    if (apiRetStatus != CY_U3P_SUCCESS) {
-      /* Error handling */
-      log_error("CyU3PGpioSetSimpleConfig(27) failed, code = %d\n", apiRetStatus);
-      error_handler(apiRetStatus);
-    }
+    // gpioConfig.outValue = CyTrue;
+    // apiRetStatus = CyU3PGpioSetSimpleConfig(27, &gpioConfig);
+    // if (apiRetStatus != CY_U3P_SUCCESS) {
+    //    // Error handling 
+    //   log_error("CyU3PGpioSetSimpleConfig(27) failed, code = %d\n", apiRetStatus);
+    //   error_handler(apiRetStatus);
+    // }
     
 
 }
@@ -1114,6 +1114,7 @@ CyU3PReturnStatus_t init_io() {
    * DQ32 mode should be selected or lppMode should be set to
    * UART_ONLY. Here we are choosing UART_ONLY configuration. */
   CyU3PIoMatrixConfig_t io_cfg;
+  CyU3PMemSet((uint8_t*)&io_cfg,0,sizeof(io_cfg));
   io_cfg.isDQ32Bit = CyTrue;
   io_cfg.useUart   = CyTrue;
   io_cfg.useI2C    = CyTrue;
@@ -1127,10 +1128,10 @@ CyU3PReturnStatus_t init_io() {
   // 26 = LP_B
   // 27 = V18_EN
   // 57 = prog_b for the fpga
-  io_cfg.gpioSimpleEn[0]  = (1<<22) | (1 << 23) | (1<<26) | (1<<27);
+  /* io_cfg.gpioSimpleEn[0]  = (1<<22) | (1 << 23) | (1<<26) | (1<<27);
   io_cfg.gpioSimpleEn[1]  = (1 << (57-32));
   io_cfg.gpioComplexEn[0] = 0;
-  io_cfg.gpioComplexEn[1] = 0;
+  io_cfg.gpioComplexEn[1] = 0; */
   return  CyU3PDeviceConfigureIOMatrix (&io_cfg);
 }
 
