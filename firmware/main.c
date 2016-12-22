@@ -12,13 +12,7 @@
 #include "rdwr.h"
 #include "error_handler.h"
 #include "cyu3gpio.h"
-#include "slfifo_handler.h"
-#include "cpu_handler.h"
-#ifdef FIRMWARE_DI
-#include "di.h" // fdi handler
-#endif
 #include "low_power.h"
-
 #include "log.h"
 #ifndef DEBUG_MAIN
 #undef log_debug
@@ -879,7 +873,7 @@ void CyFxNitroApplnInit (void) {
   }
 
   i=0;
-  while (io_handlers[i].type != HANDLER_TYPE_TERMINATOR) {
+  while (io_handlers[i].handler != 0) {
     if (io_handlers[i].boot_handler) {
         io_handlers[i].boot_handler(io_handlers[i].term_addr);
     }
@@ -936,16 +930,10 @@ void NitroDataThread_Entry (uint32_t input) {
   while (CyTrue) {
 
     if (!gRdwrCmd.done) {
-        if (gRdwrCmd.handler && gRdwrCmd.handler->type == HANDLER_TYPE_CPU) {
-            if (!cpu_handler_dmacb())
+        if (gRdwrCmd.io_handler && gRdwrCmd.io_handler->handler->handler_dma_cb) {
+            if (!gRdwrCmd.io_handler->handler->handler_dma_cb())
                 continue; // do this in a loop until dma cb puts the command back to done
         }
-        #ifdef FIRMWARE_DI
-        else if (gRdwrCmd.handler && gRdwrCmd.handler->type == HANDLER_TYPE_FDI) {
-            if (!fdi_handler_dmacb())
-                continue;
-        }
-        #endif
         else {
           log_debug ( "nd (%d/%d)", gRdwrCmd.transfered_so_far,gRdwrCmd.header.transfer_length );
         }
@@ -965,7 +953,7 @@ void NitroAppThread_Entry (uint32_t input) {
   uint32_t eventMask = NITRO_EVENT_VENDOR_CMD|NITRO_EVENT_BREAK; // can add more events
   uint32_t eventStat;
 
-  /* Initialize the debug module */
+  /* Initialize the debug and other io modules module */
   CyFxNitroApplnDebugInit();
   init_i2c();
   init_gpio();
@@ -973,13 +961,31 @@ void NitroAppThread_Entry (uint32_t input) {
   /* Initialize the bulk loop application */
   CyFxNitroApplnInit();
 
+  // CyU3PDeviceGpioOverride(48, CyTrue);
+
+  // CyU3PGpioSimpleConfig_t gpioConfig;
+  //   gpioConfig.outValue    = CyFalse;
+  //   gpioConfig.driveLowEn  = CyTrue;
+  //   gpioConfig.driveHighEn = CyTrue;
+  //   gpioConfig.inputEn     = CyFalse;
+  //   gpioConfig.intrMode    = CY_U3P_GPIO_NO_INTR;
+
+  //   CyU3PGpioSetSimpleConfig(48, &gpioConfig);
+  //   CyBool_t io48_val = CyFalse;
+
 
   log_info ( "Nitro Thread Entry\n" );
   
   for (;;) {
      log_info ( "." );
+
+     // CyU3PGpioSimpleSetValue ( 48, io48_val);
+     // io48_val = !io48_val;
+
      CyU3PSysWatchDogClear();
-     slfifo_checkdone();
+     //slfifo_checkdone();
+     // TODO put this in the mail_loop_cb
+     // ok for other main loop cb not to have rdwr_done?
 
      if (gRdwrCmd.done) {// ensures main thread mutex unlocked
          RDWR_DONE(CyTrue);
@@ -1115,11 +1121,20 @@ CyU3PReturnStatus_t init_io() {
    * UART_ONLY. Here we are choosing UART_ONLY configuration. */
   CyU3PIoMatrixConfig_t io_cfg;
   CyU3PMemSet((uint8_t*)&io_cfg,0,sizeof(io_cfg));
+
+#ifdef CX3
+  io_cfg.isDQ32Bit = CyFalse;
+  io_cfg.useUart   = CyTrue;
+  io_cfg.useI2C    = CyTrue;
+  io_cfg.useI2S    = CyTrue;
+  io_cfg.useSpi    = CyTrue;
+#else
   io_cfg.isDQ32Bit = CyTrue;
   io_cfg.useUart   = CyTrue;
   io_cfg.useI2C    = CyTrue;
   io_cfg.useI2S    = CyFalse;
   io_cfg.useSpi    = CyFalse;
+#endif  
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
   
   // TODO these could change on different boards
@@ -1158,7 +1173,8 @@ int main (void) {
     goto handle_fatal_error;
   }
 
-  status = init_io();
+  status = init_io();  
+
   if (status != CY_U3P_SUCCESS) {
     goto handle_fatal_error;
   }

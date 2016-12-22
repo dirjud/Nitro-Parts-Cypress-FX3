@@ -1,4 +1,5 @@
-#include "cpu_handler.h"
+
+#include <cyu3error.h>
 #include <cyu3system.h>
 #include <cyu3dma.h>
 #include <cyu3usb.h>
@@ -20,19 +21,25 @@ extern rdwr_cmd_t gRdwrCmd;
 ack_pkt_t gAckPkt;
 
 void cpu_handler_read(CyU3PDmaBuffer_t *buf_p) {
-
+  uint32_t status;
   log_debug("C %d\n", buf_p->size);
   buf_p->count = (gRdwrCmd.transfered_so_far + buf_p->size > gRdwrCmd.header.transfer_length) ? gRdwrCmd.header.transfer_length - gRdwrCmd.transfered_so_far : buf_p->size;
 
   // Call the read handler if the read handler function exists and if
   // the status is still OK. Otherwise, try continuing the data
   // transfer with bogus data.
-  if(gRdwrCmd.handler->read_handler && gAckPkt.status == 0) {
-    gAckPkt.status |= gRdwrCmd.handler->read_handler(buf_p);
+  if(gRdwrCmd.io_handler->read_handler && gAckPkt.status == 0) {
+    status=gRdwrCmd.io_handler->read_handler(buf_p);
+    if (status) {
+      log_error ( "Read handler fail status=%u\n", status);
+      gAckPkt.status |= status;
+    }
   }
 
-  gRdwrCmd.transfered_so_far += buf_p->count;  
-  gAckPkt.status |= CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p->count, 0);
+  gRdwrCmd.transfered_so_far += buf_p->count;
+  status=CyU3PDmaChannelCommitBuffer(&glChHandleBulkSrc, buf_p->count, 0);
+  if (status) log_error( "RD: Dma Channel fail to commit buffer: %u\n", status);
+  gAckPkt.status |= status;
   if (gAckPkt.status) {
     log_error ( "gAckPck.status %d\n" );
   }
@@ -40,10 +47,15 @@ void cpu_handler_read(CyU3PDmaBuffer_t *buf_p) {
 }
 
 void cpu_handler_write(CyU3PDmaBuffer_t *buf_p) {
-  if(gRdwrCmd.handler->write_handler && gAckPkt.status == 0) {
-    gAckPkt.status |= gRdwrCmd.handler->write_handler(buf_p);
+  uint32_t status;
+  if(gRdwrCmd.io_handler->write_handler && gAckPkt.status == 0) {
+    status =  gRdwrCmd.io_handler->write_handler(buf_p);
+    if (status) log_error ( "Write handler fail status: %u\n", status);
+    gAckPkt.status |= status;
   }
-  gAckPkt.status |= CyU3PDmaChannelDiscardBuffer(&glChHandleBulkSink);
+  status = CyU3PDmaChannelDiscardBuffer(&glChHandleBulkSink);
+  if (status) log_error ( "WR: Dma Channel fail to discared buffer: %u\n", status);
+  gAckPkt.status |= status;
   gRdwrCmd.transfered_so_far += buf_p->count;
   log_debug("WRITE %d/%d\n", gRdwrCmd.transfered_so_far, gRdwrCmd.header.transfer_length);
 }
@@ -58,22 +70,18 @@ void cpu_handler_commit_ack() {
     CyU3PMemCopy(buf_p.buffer, (uint8_t *) (&gAckPkt), sizeof(gAckPkt));
     CyU3PDmaChannelCommitBuffer (&glChHandleBulkSrc, sizeof(gAckPkt),0);
   }
-  log_debug("ACK %d\n", gAckPkt.status);
+  if (gAckPkt.status) {
+    log_info("ACK %d\n", gAckPkt.status);
+  }
 }
 
 /* Called at the start of any newly received cpu handler. */
-void cpu_handler_cmd_start() {
+uint16_t cpu_handler_cmd_start() {
   gAckPkt.id       = ACK_PKT_ID;
   gAckPkt.checksum = 0;
   gAckPkt.status   = 0;
   gAckPkt.reserved = 0;
-
-
-  // Call this handlers init function, if it exists
-  if(gRdwrCmd.handler->init_handler) {
-    gAckPkt.status |= gRdwrCmd.handler->init_handler();
-  }
-
+  return 0;
 }
 
 uint16_t cpu_handler_readcb() {
@@ -183,7 +191,7 @@ uint16_t cpu_handler_reset_read() {
 
 /* This function sets up the DMA channels to pipe data to and from the
  * CPU so that cpu handlers can deals with it. */
-CyU3PReturnStatus_t cpu_handler_setup(void) {
+uint16_t cpu_handler_setup(void) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
@@ -258,3 +266,13 @@ void cpu_handler_teardown(void) {
   CyU3PDmaChannelDestroy (&glChHandleBulkSink);
   CyU3PDmaChannelDestroy (&glChHandleBulkSrc);
 }
+
+
+handler_t glCpuHandler = {
+  cpu_handler_setup,
+  cpu_handler_teardown,
+  cpu_handler_cmd_start,
+  cpu_handler_dmacb,
+  0
+};
+

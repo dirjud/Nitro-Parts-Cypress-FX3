@@ -137,21 +137,40 @@ typedef uint16_t (*io_handler_status_func)();
  **/
 typedef uint16_t (*io_handler_chksum_func)();
 
-enum {
-  HANDLER_TYPE_TERMINATOR = 0, // indicates end of io_handler list
-  HANDLER_TYPE_CPU,
-  HANDLER_TYPE_SLAVE_FIFO,
-  #ifdef FIRMWARE_DI
-  HANDLER_TYPE_FDI, // should only be used interally
-  #endif
-} handler_type_t;
+
+/*
+    Each io handler (below) must fall into a
+    generic handler type.  The first field
+    of the io hanlder must be set to the type.
+ */
+typedef uint16_t (*handler_setup_func)(); // setup for this handler 
+typedef void (*handler_teardown_func)(); // teardown for this handler nullable
+typedef uint16_t (*handler_start_func)(); //  nullable
+typedef uint16_t (*handler_dma_cb_func)(); // call from data thread (nullable) return 0 to call in data loop
+typedef CyBool_t (*handler_filter_func)(uint16_t);  // nullable if filter is non-null, allows filter of terminal address (more than one)
+
+typedef struct {
+    handler_setup_func handler_setup;
+    handler_teardown_func handler_teardown;
+    handler_start_func handler_start;
+    handler_dma_cb_func handler_dma_cb;
+    handler_filter_func handler_filter;
+} handler_t;
+
+// fx3 pre-provided handlers
+extern handler_t glCpuHandler;
+//extern handler_t glSlaveFifoHandler;
+#ifdef FIRMWARE_DI
+extern handler_t glFirmwareDIHandler;
+#endif
+
 
 /**
  *  rdwr vendor command handles a NULL-terminated array of these structures 
  *  when setting up the read/write transfer.
  **/
 typedef struct {
-  uint8_t type;
+  handler_t *handler;  // NULL for terminator
   uint16_t term_addr;
   io_handler_boot_func boot_handler; // once at boot
   io_handler_init_func init_handler; // before every transaction
@@ -181,18 +200,18 @@ extern io_handler_t io_handlers[];
  *          DECLARE_SOMEHANDLER,
  *          DECLARE_ANOTHERHANDLER,... };
  **/
-#define DECLARE_HANDLER(type, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func, user_data) \
-  {type, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func, (void *) user_data} 
+#define DECLARE_HANDLER(handler, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func, user_data) \
+  {handler, term, boot_func, init_func, read_func, write_func, status_func, chksum_func, uninit_func, (void *) user_data} 
 
 /**
  *  io_handlers must be null terminated.  If you don't have an address 0 terminator
  *  as the last handler, you can use the NULL handler
  **/
 #define DECLARE_TERMINATOR \
-  DECLARE_HANDLER(HANDLER_TYPE_TERMINATOR,0,0,0,0,0,0,0,0,0)
+  DECLARE_HANDLER(0,0,0,0,0,0,0,0,0,0)
 
 #define DECLARE_DUMMY_HANDLER(TERM_ADDR) \
-  DECLARE_HANDLER(HANDLER_TYPE_CPU,TERM_ADDR,0,0,0,0,0,0,0,0)
+  DECLARE_HANDLER(&glCpuHandler,TERM_ADDR,0,0,0,0,0,0,0,0)
 
 #endif
 

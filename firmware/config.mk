@@ -12,7 +12,6 @@ FIRMWARE_VERSION=1 # firmware should set this to whatever is appropriate
 SOURCE += $(FX3DIR)dscr.c 
 SOURCE += $(FX3DIR)error_handler.c
 SOURCE += $(FX3DIR)cpu_handler.c
-SOURCE += $(FX3DIR)slfifo_handler.c
 SOURCE += $(FX3DIR)rdwr.c
 SOURCE += $(FX3DIR)handlers.c
 SOURCE += $(FX3DIR)../../../Microchip/M24XX/fx3/m24xx.c
