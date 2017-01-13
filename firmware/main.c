@@ -20,6 +20,13 @@
 #endif
 
 
+#ifndef GPIO_INTERRUPT
+#define GPIO_INTERRUPT 0
+#else
+extern void GPIO_INTERRUPT (uint8_t);
+#endif
+
+
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PThread NitroDataThread;
 #ifdef FIRMWARE_DI
@@ -78,7 +85,7 @@ void init_gpio (void) {
     gpioClock.clkSrc = CY_U3P_SYS_CLK;
     gpioClock.halfDiv = 0;
 
-    apiRetStatus = CyU3PGpioInit(&gpioClock, 0);
+    apiRetStatus = CyU3PGpioInit(&gpioClock, GPIO_INTERRUPT);
     if (apiRetStatus != 0) {
         /* Error Handling */
       log_error("CyU3PGpioInit failed, error code = %d\n", apiRetStatus);
@@ -871,19 +878,6 @@ void NitroAppThread_Entry (uint32_t input) {
 
   /* Initialize the bulk loop application */
   CyFxNitroApplnInit();
-
-  // CyU3PDeviceGpioOverride(48, CyTrue);
-
-  // CyU3PGpioSimpleConfig_t gpioConfig;
-  //   gpioConfig.outValue    = CyFalse;
-  //   gpioConfig.driveLowEn  = CyTrue;
-  //   gpioConfig.driveHighEn = CyTrue;
-  //   gpioConfig.inputEn     = CyFalse;
-  //   gpioConfig.intrMode    = CY_U3P_GPIO_NO_INTR;
-
-  //   CyU3PGpioSetSimpleConfig(48, &gpioConfig);
-  //   CyBool_t io48_val = CyFalse;
-
 
   log_info ( "Nitro Thread Entry\n" );
   
