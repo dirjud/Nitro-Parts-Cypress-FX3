@@ -26,6 +26,10 @@
 extern void GPIO_INTERRUPT (uint8_t);
 #endif
 
+#ifndef SS_INIT
+#define SS_INIT CyTrue
+#endif
+
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PThread NitroDataThread;
@@ -831,7 +835,9 @@ void CyFxNitroApplnInit (void) {
     /* Connect the USB Pins with super speed operation enabled. */
     apiRetStatus = CyU3PUsbSetTxSwing(127); // per Cypress tech phyerr doc
     log_debug ( "Tx Swing ret: %d\n" , apiRetStatus );
-    apiRetStatus = CyU3PConnectState(CyTrue, CyTrue);
+    apiRetStatus = CyU3PUsbVBattEnable(CyTrue);
+    apiRetStatus = CyU3PUsbControlVBusDetect ( CyFalse, CyTrue );
+    apiRetStatus = CyU3PConnectState(CyTrue, SS_INIT);
     if (apiRetStatus != CY_U3P_SUCCESS) {
       log_error( "USB Connect failed, Error code = %d\n", apiRetStatus);
       error_handler(apiRetStatus);
