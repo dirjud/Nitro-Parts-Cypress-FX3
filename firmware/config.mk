@@ -22,11 +22,17 @@ SOURCE += $(FX3DIR)fx3_term.c
 
 # add any custom debugging or cflags
 #CCFLAGS += -Dxxx 
+#BUILD_CCFLAGS += -DENABLE_LOGGING
+#BUILD_CCFLAGS += -DDEBUG_MAIN
 
 # enable if you want to have di get/set functionality inside the fx3
 # requires adding a source file with di_main
+# TODO this is changed since handler change.  
+# needs redone.  Originally it only worked for slfifo terminals.
+# should be rethought to be generic or combined w/ the slfifo
+# handler instead.
 # CCFLAGS += -DFIRMWARE_DI
 
 # customize build directory
 #BUILDDIR = build
-INCLUDES = -I../../../Microchip/M24XX/fx3 -I../../../Xilinx/Spartan/fx3 
+INCLUDES = -I../../../Microchip/M24XX/fx3
