@@ -99,8 +99,11 @@ void init_gpio (void) {
  * are routed to the UART and can be seen using a UART console
  * running at 115200 baud rate. */
 void CyFxNitroApplnDebugInit (void) {
+
+#ifdef ENABLE_LOGGING
   CyU3PUartConfig_t uartConfig;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
+
 
   /* Initialize the UART for printing debug messages */
   apiRetStatus = CyU3PUartInit();
@@ -139,6 +142,7 @@ void CyFxNitroApplnDebugInit (void) {
   CyU3PDebugEnable(0xFFFF);
 
   log_debug ( "Debugger Init.. should be working now.\n" );
+#endif  
 }
 
 /* This function starts the nitro application. This is called when a
