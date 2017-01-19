@@ -12,7 +12,6 @@
 #include "rdwr.h"
 #include "error_handler.h"
 #include "cyu3gpio.h"
-#include "low_power.h"
 #include "log.h"
 #ifndef DEBUG_MAIN
 #undef log_debug
