@@ -79,10 +79,12 @@ void init_i2c() {
 
 void init_gpio (void) {
     CyU3PGpioClock_t gpioClock;
-    CyU3PGpioSimpleConfig_t gpioConfig;
     CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
-    /* Init the GPIO module */
+    // TODO should these be registers in the fx3 term
+    // that allow firmware to customize?
+    // or perhaps #defines to customize at compile time?
+    /* Init the GPIO module */    
     gpioClock.fastClkDiv = 2;
     gpioClock.slowClkDiv = 0;
     gpioClock.simpleDiv = CY_U3P_GPIO_SIMPLE_DIV_BY_2;
@@ -800,6 +802,7 @@ void CyFxNitroApplnInit (void) {
 
   i=0;
   while (io_handlers[i].handler != 0) {
+    log_debug ( "handler %d boot %s\n", i, io_handlers[i].boot_handler ? "yes" : "no");
     if (io_handlers[i].boot_handler) {
         io_handlers[i].boot_handler(io_handlers[i].term_addr);
     }
@@ -835,8 +838,15 @@ void CyFxNitroApplnInit (void) {
     /* Connect the USB Pins with super speed operation enabled. */
     apiRetStatus = CyU3PUsbSetTxSwing(127); // per Cypress tech phyerr doc
     log_debug ( "Tx Swing ret: %d\n" , apiRetStatus );
+    #ifdef CX3
+    // ONE THE CX3, the power input is the same as the batt input.
+    // if we have lower voltage than 5v (iPhone) the usb bus won't
+    // turn on without enabling the batt input.
+    // for FX3 however they are different inputs and enabling VBatt
+    // causes the FX3 to not power the usb bus.
     apiRetStatus = CyU3PUsbVBattEnable(CyTrue);
-    apiRetStatus = CyU3PUsbControlVBusDetect ( CyFalse, CyTrue );
+    apiRetStatus |= CyU3PUsbControlVBusDetect ( CyFalse, CyTrue );
+    #endif
     apiRetStatus = CyU3PConnectState(CyTrue, SS_INIT);
     if (apiRetStatus != CY_U3P_SUCCESS) {
       log_error( "USB Connect failed, Error code = %d\n", apiRetStatus);
