@@ -191,7 +191,7 @@ uint16_t cpu_handler_reset_read() {
 
 /* This function sets up the DMA channels to pipe data to and from the
  * CPU so that cpu handlers can deals with it. */
-uint16_t cpu_handler_setup(void) {
+uint16_t cpu_handler_setup(uint16_t unused) {
   CyU3PDmaChannelConfig_t dmaCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 

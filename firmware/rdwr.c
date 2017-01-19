@@ -114,8 +114,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   io_handler_t *new_handler = NULL;
 
   // Select the appropriate handler. Any handler specified with term_addr of
-  // 0 is considered the wild card handler and will prevent any handlers
-  // following if from being accessed.
+  // the passed in term or the handler_filter returns True
   #ifdef FIRMWARE_DI
   if (firmware_di) {
    new_handler = &firmware_di_handler;
@@ -139,6 +138,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   // if we are switching handlers, uninit the previous handler
   // uninit function
   if(gRdwrCmd.io_handler != new_handler) {
+    log_debug ( "uninit previous handler\n");
     if (gRdwrCmd.io_handler && gRdwrCmd.io_handler->uninit_handler) {
         gRdwrCmd.io_handler->uninit_handler();
     }
@@ -149,37 +149,53 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   if(gRdwrCmd.io_handler && (
 	!new_handler || 
  	gRdwrCmd.io_handler->handler != new_handler->handler )) {
+    log_debug ( "switching handler types, teardown old handler\n");
     if (gRdwrCmd.io_handler->handler->handler_teardown)
         gRdwrCmd.io_handler->handler->handler_teardown();        
   }
 
   // now setup the new handler types DMA channels
   // if switching types
+  // handlers internally must track if they're already set up
+  // this function calls the new setup regardless
   if (new_handler &&
-      (!gRdwrCmd.io_handler || (
-        new_handler->handler != gRdwrCmd.io_handler->handler)) &&
       new_handler->handler->handler_setup) {
-        status=new_handler->handler->handler_setup();      
+        log_debug ( "setup new handler type\n");
+        status=new_handler->handler->handler_setup(len_hint);      
         if (status) {
           log_error ( "gRdWrCmd.io_handler failed to setup. %d\n", status );
           return status; 
         }     
   }
-  
 
-  if ((!gRdwrCmd.io_handler ||
-       gRdwrCmd.io_handler != new_handler) &&
-      (new_handler && new_handler->init_handler)
-     ) {
-    status=new_handler->init_handler();
-    if (status) return status;
-  }
-  
   gRdwrCmd.io_handler = new_handler;
 
-  
+  // dma channels should be set up at this point,
+  // ack the vender 
+  // some handlers init need to know header info
+  // so ack vendor command now
   gRdwrCmd.done    = 0;
   gRdwrCmd.transfered_so_far = 0;
+
+  // NOTE see function documentation.  
+  // TODO - do we need a mutex to stop the 
+  // data thread from calling read or write before the 
+  // init below is done?
+  status = rdwr_setup();
+  if (status) return status; 
+  
+
+  // init called every time on new trans
+  if (gRdwrCmd.io_handler && gRdwrCmd.io_handler->init_handler)
+    {
+    log_debug ( "init new handler\n");
+    status=gRdwrCmd.io_handler->init_handler();
+    if (status) {
+      log_error ( "handler fail to init\n");
+     return status;
+   }
+  }
+  
    
   // call the new handlers start function, if it exists
   if (gRdwrCmd.io_handler) {
@@ -191,9 +207,6 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     log_error ( "Handler is NULL\n" );
   }
 
-  // NOTE see function documentation.  
-  status = rdwr_setup();
-  if (status) return status; 
 
   log_debug ( "rdwr command (%c) type: %d, term %d reg %d len %d (old done=%d tx=%d)\n",
 #ifdef FIRMWARE_DI

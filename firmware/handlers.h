@@ -143,7 +143,7 @@ typedef uint16_t (*io_handler_chksum_func)();
     generic handler type.  The first field
     of the io hanlder must be set to the type.
  */
-typedef uint16_t (*handler_setup_func)(); // setup for this handler 
+typedef uint16_t (*handler_setup_func)(uint16_t); // setup for this handler param is length hint from driver
 typedef void (*handler_teardown_func)(); // teardown for this handler nullable
 typedef uint16_t (*handler_start_func)(); //  nullable
 typedef uint16_t (*handler_dma_cb_func)(); // call from data thread (nullable) return 0 to call in data loop
