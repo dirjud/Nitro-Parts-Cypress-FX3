@@ -29,6 +29,18 @@ extern void GPIO_INTERRUPT (uint8_t);
 #define SS_INIT CyTrue
 #endif
 
+/**
+ * set interface callback.  Allows firmware
+ * to be notified if an interface is selected.
+ **/
+#ifndef INTF_CALLBACK
+#define INTF_CALLBACK log_set_interface
+void log_set_interface(uint8_t interface, uint8_t alt) {
+  log_info ( "Set Interface %d Alt %d\n", interface, alt);
+}
+#else
+extern void INTF_CALLBACK(uint8_t, uint8_t);
+#endif
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PThread NitroDataThread;
@@ -44,7 +56,7 @@ uint32_t glSetupDat0, glSetupDat1;      /* for handling vendor commands on app t
 
 uint8_t glUsbDeviceStat = 0;            /* USB device status. Bus powered.      */
 uint8_t glUsbConfiguration = 0;         /* Active USB configuration.            */
-uint8_t glUsbInterface = 0;             /* Active USB interface.                */
+uint8_t glInterfaceAltSettings[NUM_INTERFACES] = {0};  /* Active USB interfaced.      */
 uint8_t *glSelBuffer = 0;               /* Buffer to hold SEL values.           */
 
 CyBool_t glIsApplnActive = CyFalse;     /* Whether the loopback application is active or not. */
@@ -615,14 +627,24 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
 
     /* Return the current selected interface. */
   case CY_U3P_USB_SC_GET_INTERFACE:
-    glEp0Buffer[0] = glUsbInterface;
-    status = CyU3PUsbSendEP0Data (wLength, glEp0Buffer);
+    if (wIndex>=NUM_INTERFACES) {
+      log_error ( "Get Interface %d, NUM_INTERFACES: %d\n", wIndex, NUM_INTERFACES );
+      isHandled=CyFalse;
+    } else {
+      glEp0Buffer[0] = glInterfaceAltSettings[wIndex];
+      status = CyU3PUsbSendEP0Data (wLength, glEp0Buffer);
+    }
     break;
 
     /* Store the selected interface value. */
   case CY_U3P_USB_SC_SET_INTERFACE:
-    glUsbInterface = wValue;
-    log_info ( "Set Interface: %d %d", wValue, wIndex);
+    if (wIndex>=NUM_INTERFACES) {
+      log_error ( "Set Interface %d, NUM_INTERFACES: %d\n", wIndex, NUM_INTERFACES);
+      isHandled=CyFalse;
+    } else {
+      glInterfaceAltSettings[wIndex] = wValue;
+      INTF_CALLBACK ( wIndex, wValue );
+    }
     break;
 
   case CY_U3P_USB_SC_SET_SEL:
