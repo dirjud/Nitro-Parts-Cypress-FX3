@@ -68,7 +68,7 @@ void init_i2c() {
   i2cConfig.busTimeout = 0xFFFFFFFF; // no timeout
   i2cConfig.dmaTimeout = 0xFFFF;
   i2cConfig.isDma      = CyFalse; // not a dma
-  
+
   status = CyU3PI2cSetConfig (&i2cConfig, NULL);
   if (status != CY_U3P_SUCCESS) {
     log_error("Error setting I2C config: %d\n", status);
@@ -83,7 +83,7 @@ void init_gpio (void) {
     // TODO should these be registers in the fx3 term
     // that allow firmware to customize?
     // or perhaps #defines to customize at compile time?
-    /* Init the GPIO module */    
+    /* Init the GPIO module */
     gpioClock.fastClkDiv = 2;
     gpioClock.slowClkDiv = 0;
     gpioClock.simpleDiv = CY_U3P_GPIO_SIMPLE_DIV_BY_2;
@@ -126,7 +126,7 @@ void CyFxNitroApplnDebugInit (void) {
   uartConfig.rxEnable = CyFalse;
   uartConfig.flowCtrl = CyFalse;
   uartConfig.isDma = CyTrue;
-  
+
   apiRetStatus = CyU3PUartSetConfig (&uartConfig, NULL);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     error_handler(apiRetStatus);
@@ -147,7 +147,7 @@ void CyFxNitroApplnDebugInit (void) {
   CyU3PDebugEnable(0xFFFF);
 
   log_debug ( "Debugger Init.. should be working now.\n" );
-#endif  
+#endif
 }
 
 /* This function starts the nitro application. This is called when a
@@ -186,13 +186,15 @@ void CyFxNitroApplnStart (void) {
   epCfg.burstLen = 1;
   epCfg.streams = 0;
   epCfg.pcktSize = gRdwrCmd.ep_buffer_size;
-  
+
   /* Producer endpoint configuration */
   apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_PRODUCER, &epCfg);
   if (apiRetStatus != CY_U3P_SUCCESS) {
     log_error("CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
     error_handler(apiRetStatus);
   }
+
+  epCfg.burstLen = gRdwrCmd.ep_buffer_size == 1024 ? CY_FX_EP_BURST_LENGTH : 1; // for the read endpoint we can burst in usb3 mode
 
   /* Consumer endpoint configuration */
   apiRetStatus = CyU3PSetEpConfig(CY_FX_EP_CONSUMER, &epCfg);
@@ -230,7 +232,7 @@ void CyFxNitroApplnStop (void) {
   CyU3PEpConfig_t epCfg;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
   int i;
-    
+
   log_debug("Entering CyFxNitroApplnStop()\n");
 
   /* Update the flag. */
@@ -238,7 +240,7 @@ void CyFxNitroApplnStop (void) {
   gRdwrCmd.done=1; // just in case
 
   // clean up DMA channels and anything left by current event handler
-  rdwr_teardown(); 
+  rdwr_teardown();
 
   /* Flush the endpoint memory */
   CyU3PUsbFlushEp(CY_FX_EP_PRODUCER);
@@ -337,7 +339,7 @@ CyFxUsbHandleClearFeature (
             log_debug ( "CLEAR EP - rdwr_teardown\n" );
             rdwr_teardown(); // will be all flushed for new transactions
         }
- 
+
         /* Clear stall on the endpoint. */
         CyU3PUsbStall (wIndex, CyFalse, CyTrue);
         isHandled = CyTrue;
@@ -521,7 +523,7 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
 
 CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
 				   uint8_t  bType, uint8_t bTarget,
-				   uint16_t wValue, uint16_t wIndex, 
+				   uint16_t wValue, uint16_t wIndex,
 				   uint16_t wLength) {
   CyBool_t isHandled = CyTrue;
   CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
@@ -575,11 +577,11 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
   case CY_U3P_USB_SC_GET_DESCRIPTOR:
     status = CyFxUsbSendDescriptor (wValue, wIndex, wLength);
     break;
-    
+
   case CY_U3P_USB_SC_SET_DESCRIPTOR:
     /* ACK the request and do nothing. */
     break;
-    
+
     /* Return the current selected configuration. */
   case CY_U3P_USB_SC_GET_CONFIGURATION:
     glEp0Buffer[0] = glUsbConfiguration;
@@ -620,6 +622,7 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
     /* Store the selected interface value. */
   case CY_U3P_USB_SC_SET_INTERFACE:
     glUsbInterface = wValue;
+    log_info ( "Set Interface: %d %d", wValue, wIndex);
     break;
 
   case CY_U3P_USB_SC_SET_SEL:
@@ -638,7 +641,7 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
 	isHandled = CyFalse;
     }
     break;
-        
+
   default:
     isHandled = CyFalse;
     log_debug ( "Request not handled.\n" );
@@ -666,10 +669,10 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
     uint8_t  bType, bTarget;
     uint16_t wValue, wIndex, wLength;
     CyBool_t handled=CyFalse;
-    
+
     //CyU3PDebugPrint(LOG_DEBUG, "Entering CyFxNitroApplnUSBSetupCB()\n");
     log_debug ( "Entering CyFxNitroApplnUSBSetupCB()\n");
-    
+
 
     /* Decode the fields from the setup request. */
     bReqType = (setupdat0 & CY_U3P_USB_REQUEST_TYPE_MASK);
@@ -679,7 +682,7 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
     wValue   = ((setupdat0 & CY_U3P_USB_VALUE_MASK)   >> CY_U3P_USB_VALUE_POS);
     wIndex   = ((setupdat1 & CY_U3P_USB_INDEX_MASK)   >> CY_U3P_USB_INDEX_POS);
     wLength  = ((setupdat1 & CY_U3P_USB_LENGTH_MASK)  >> CY_U3P_USB_LENGTH_POS);
-    
+
     //log_debug("Setup Command Received:\n");
     //log_debug("  bReqType : 0x%x\n", bReqType);
     //log_debug("  bType    : 0x%x\n", bType);
@@ -689,7 +692,7 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
     //log_debug("  wIndex   : 0x%x\n", wIndex);
     //log_debug("  wLength  : 0x%x\n", wLength);
 
-    
+
 
     switch (bType) {
     case CY_U3P_USB_STANDARD_RQT:
@@ -706,7 +709,7 @@ CyBool_t CyFxNitroApplnUSBSetupCB (
       CyU3PEventSet(&glThreadEvent, NITRO_EVENT_VENDOR_CMD, CYU3P_EVENT_OR);
       break;
     }
-    
+
     log_debug ( "Vendor command handled: %d\n", handled ? 1 : 0);
     return handled;
 }
@@ -747,7 +750,7 @@ void CyFxNitroApplnUSBEventCB (
     break;
   case CY_U3P_USB_EVENT_VBUS_REMOVED:
     log_info( "VBUS POWER REMOVED\n");
-    break;    
+    break;
   case CY_U3P_USB_EVENT_DISCONNECT:
     log_info ( "USB DISCONNECT\n" );
     /* Stop the loop back function. */
@@ -876,7 +879,7 @@ void NitroDataThread_Entry (uint32_t input) {
         }
     }
 
-    // sleep if we're not doing anything else the event breaks the sleep so data 
+    // sleep if we're not doing anything else the event breaks the sleep so data
     // can be handled.
     CyU3PEventGet(&glThreadEvent, NITRO_EVENT_DATA, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
   }
@@ -899,7 +902,7 @@ void NitroAppThread_Entry (uint32_t input) {
   CyFxNitroApplnInit();
 
   log_info ( "Nitro Thread Entry\n" );
-  
+
   for (;;) {
      log_info ( "." );
 
@@ -929,17 +932,17 @@ void NitroAppThread_Entry (uint32_t input) {
             log_warn( "usb phy err=%d link err=%d\n", phy, link );
            }
          } else {
-            log_warn( "Err phy??\n" ); 
+            log_warn( "Err phy??\n" );
          }
       }
-    } 
+    }
 #endif
 
     ret = CyU3PEventGet(&glThreadEvent, eventMask, CYU3P_EVENT_OR_CLEAR, &eventStat, 1000);
     if (ret == CY_U3P_SUCCESS) {
         // handle event
         if (eventStat & NITRO_EVENT_VENDOR_CMD) {
-            handle_vendor_cmd ( 
+            handle_vendor_cmd (
                 ((glSetupDat0 & CY_U3P_USB_REQUEST_MASK) >> CY_U3P_USB_REQUEST_POS), // bRequest
                 glSetupDat0 & CY_U3P_USB_REQUEST_TYPE_MASK, // bReqType
                 glSetupDat0 & CY_U3P_USB_REQUEST_TYPE_MASK & CY_U3P_USB_TYPE_MASK, // bType
@@ -961,7 +964,7 @@ extern void di_main();
 void NitroDIThread_Entry (uint32_t input) {
   log_info ( "DI Thread Entry\n" );
   CyU3PMutexCreate(&gRdwrCmd.rdwr_mutex, CYU3P_NO_INHERIT);
-  di_main(); // defined 
+  di_main(); // defined
 }
 #endif
 
@@ -969,7 +972,7 @@ void NitroDIThread_Entry (uint32_t input) {
 void CyFxApplicationDefine (void) {
   void *ptr = NULL;
   uint32_t ret = CY_U3P_SUCCESS;
-  
+
   ret = CyU3PEventCreate(&glThreadEvent);
   if (ret != CY_U3P_SUCCESS) {
     while (1); // debugging not initialized yet.
@@ -1020,7 +1023,7 @@ void CyFxApplicationDefine (void) {
  CyU3PSysWatchDogConfigure ( CyTrue, 2000 );
 
 #ifdef FIRMWARE_DI
- ptr = CyU3PMemAlloc ( CY_FX_NITRO_THREAD_STACK); // memory for another thread 
+ ptr = CyU3PMemAlloc ( CY_FX_NITRO_THREAD_STACK); // memory for another thread
  ret = CyU3PThreadCreate (&NitroDIThread, /* Bulk loop App Thread structure */
 				     "23:NitroDI",      /* Thread ID and Thread name */
 				     NitroDIThread_Entry, /* Bulk loop App Thread Entry function */
@@ -1058,9 +1061,9 @@ CyU3PReturnStatus_t init_io() {
   io_cfg.useI2C    = CyTrue;
   io_cfg.useI2S    = CyFalse;
   io_cfg.useSpi    = CyFalse;
-#endif  
+#endif
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
-  
+
   // TODO these could change on different boards
   // 22 = VCON_EN
   // 23 = HICS for fpga
@@ -1097,7 +1100,7 @@ int main (void) {
     goto handle_fatal_error;
   }
 
-  status = init_io();  
+  status = init_io();
 
   if (status != CY_U3P_SUCCESS) {
     goto handle_fatal_error;

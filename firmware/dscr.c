@@ -53,7 +53,7 @@ const uint8_t CyFxUSB30DeviceDscr[] __attribute__ ((aligned (32))) =
     0x09,                           /* Maxpacket size for EP0 : 2^9 */
     VIDL,VIDH,                      /* Vendor ID */
     PIDL,PIDH,                      /* Product ID */
-    0x00,0x03,                      /* Device release number */
+    0x00,0x04,                      /* Device release number */
     0x01,                           /* Manufacture string index */
     0x02,                           /* Product string index */
     0x00,                           /* Serial number string index */
@@ -72,7 +72,7 @@ const uint8_t CyFxUSB20DeviceDscr[] __attribute__ ((aligned (32))) =
     0x40,                           /* Maxpacket size for EP0 : 64 bytes */
     VIDL,VIDH,                      /* Vendor ID */
     PIDL,PIDH,                      /* Product ID */
-    0x00,0x03,                      /* Device release number */
+    0x00,0x04,                      /* Device release number */
     0x01,                           /* Manufacture string index */
     0x02,                           /* Product string index */
     0x00,                           /* Serial number string index */
@@ -124,7 +124,7 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
-    0x2C,0x00,                      /* Length of this descriptor and all sub descriptors */
+    0x35,0x00,                      /* Length of this descriptor and all sub descriptors */
     0x01,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x00,                           /* COnfiguration string index */
@@ -136,10 +136,22 @@ const uint8_t CyFxUSBSSConfigDscr[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
     0x00,                           /* Interface number */
     0x00,                           /* Alternate setting number */
+    0x00,                           /* Number of end points */
+    0xFF,                           /* Interface class */
+    0x1F,                           /* Interface sub class */
+    0x01,                           /* Interface protocol code */
+    0x00,                           /* Interface descriptor string index */
+
+
+    /* Interface descriptor */
+    0x09,                           /* Descriptor size */
+    CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
+    0x00,                           /* Interface number */
+    0x01,                           /* Alternate setting number */
     0x02,                           /* Number of end points */
     0xFF,                           /* Interface class */
-    0x00,                           /* Interface sub class */
-    0x00,                           /* Interface protocol code */
+    0x1F,                           /* Interface sub class */
+    0x01,                           /* Interface protocol code */
     0x00,                           /* Interface descriptor string index */
 
     /* Endpoint descriptor for producer EP */
@@ -179,8 +191,8 @@ const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
     /* Configuration descriptor */
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
-    0x20,0x00,                      /* Length of this descriptor and all sub descriptors */
-    0x01,                           /* Number of interfaces */
+    0x29,0x00,                      /* Length of this descriptor and all sub descriptors */
+    0x02,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x00,                           /* COnfiguration string index */
     0x80,                           /* Config characteristics - bus powered */
@@ -193,8 +205,19 @@ const uint8_t CyFxUSBHSConfigDscr[] __attribute__ ((aligned (32))) =
     0x00,                           /* Alternate setting number */
     0x02,                           /* Number of endpoints */
     0xFF,                           /* Interface class */
-    0x00,                           /* Interface sub class */
-    0x00,                           /* Interface protocol code */
+    0x1F,                           /* Interface sub class */
+    0x01,                           /* Interface protocol code */
+    0x00,                           /* Interface descriptor string index */
+
+    /* Interface descriptor */
+    0x09,                           /* Descriptor size */
+    CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
+    0x00,                           /* Interface number */
+    0x01,                           /* Alternate setting number */
+    0x02,                           /* Number of endpoints */
+    0xFF,                           /* Interface class */
+    0x1F,                           /* Interface sub class */
+    0x01,                           /* Interface protocol code */
     0x00,                           /* Interface descriptor string index */
 
     /* Endpoint descriptor for producer EP */
