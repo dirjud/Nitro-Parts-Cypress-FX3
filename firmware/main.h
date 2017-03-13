@@ -71,10 +71,10 @@
 extern const uint8_t CyFxUSB20DeviceDscr[];
 extern const uint8_t CyFxUSB30DeviceDscr[];
 extern const uint8_t CyFxUSBDeviceQualDscr[];
-extern const uint8_t CyFxUSBFSConfigDscr[];
-extern const uint8_t CyFxUSBHSConfigDscr[];
+extern const uint8_t* CyFxUSBFSConfigDscr[];
+extern const uint8_t* CyFxUSBHSConfigDscr[];
 extern const uint8_t CyFxUSBBOSDscr[];
-extern const uint8_t CyFxUSBSSConfigDscr[];
+extern const uint8_t* CyFxUSBSSConfigDscr[];
 extern const uint8_t* CyFxUSBStringPtrs[];
 
 void CyFxAppErrorHandler (CyU3PReturnStatus_t apiRetStatus);
@@ -84,12 +84,7 @@ extern CyU3PEvent glThreadEvent;       /* event to cause app thread to wake up *
 #define NITRO_EVENT_DATA        (1<<1) /* DI transaction started. */
 #define NITRO_EVENT_BREAK        (1<<2) /* break the main loop */
 
-
-// define this in config if your descritpor has
-// more than the default 1 interface
-#ifndef NUM_INTERFACES
-#define NUM_INTERFACES 1
-#endif
+extern uint8_t glUsbConfiguration;
 
 #include "cyu3externcend.h"
 

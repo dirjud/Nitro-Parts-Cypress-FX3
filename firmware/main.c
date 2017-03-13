@@ -22,7 +22,7 @@
 #ifndef GPIO_INTERRUPT
 #define GPIO_INTERRUPT 0
 #else
-extern void GPIO_INTERRUPT (uint8_t);
+void GPIO_INTERRUPT (uint8_t);
 #endif
 
 #ifndef SS_INIT
@@ -34,12 +34,14 @@ extern void GPIO_INTERRUPT (uint8_t);
  * to be notified if an interface is selected.
  **/
 #ifndef INTF_CALLBACK
+#ifdef ENABLE_LOGGING
 #define INTF_CALLBACK log_set_interface
 void log_set_interface(uint8_t interface, uint8_t alt) {
   log_info ( "Set Interface %d Alt %d\n", interface, alt);
 }
+#endif
 #else
-extern void INTF_CALLBACK(uint8_t, uint8_t);
+void INTF_CALLBACK(uint8_t, uint8_t);
 #endif
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
@@ -56,6 +58,7 @@ uint32_t glSetupDat0, glSetupDat1;      /* for handling vendor commands on app t
 
 uint8_t glUsbDeviceStat = 0;            /* USB device status. Bus powered.      */
 uint8_t glUsbConfiguration = 0;         /* Active USB configuration.            */
+#define NUM_INTERFACES 10      // increase if necessary
 uint8_t glInterfaceAltSettings[NUM_INTERFACES] = {0};  /* Active USB interfaced.      */
 uint8_t *glSelBuffer = 0;               /* Buffer to hold SEL values.           */
 
@@ -108,6 +111,7 @@ void init_gpio (void) {
       log_error("CyU3PGpioInit failed, error code = %d\n", apiRetStatus);
       error_handler(apiRetStatus);
     }
+    log_debug ( "GPIO block initialized\n");
 }
 
 
@@ -440,12 +444,14 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
 {
     uint16_t length = 0, index = 0;
     uint8_t *buffer = NULL;
+    uint8_t dscrType = wValue>>8;
+    uint8_t dscrIdx = wValue&0xff;
     CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
     CyU3PUSBSpeed_t usbSpeed = CyU3PUsbGetSpeed ();
 
     /* The descriptor type is in the MS byte and the index is in
      * the LS byte. The index is useful only for string descriptor. */
-    switch (wValue >> 8)
+    switch (dscrType)
     {
         case CY_U3P_USB_DEVICE_DESCR:
             if (usbSpeed == CY_U3P_SUPER_SPEED)
@@ -472,28 +478,27 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
         case CY_U3P_USB_CONFIG_DESCR:
             if (usbSpeed == CY_U3P_SUPER_SPEED)
             {
-                buffer = (uint8_t *)CyFxUSBSSConfigDscr;
+                buffer = CyFxUSBSSConfigDscr[dscrIdx];
             }
             else if (usbSpeed == CY_U3P_HIGH_SPEED)
             {
-                buffer = (uint8_t *)CyFxUSBHSConfigDscr;
+                buffer = CyFxUSBHSConfigDscr[dscrIdx];
             }
             else /* CY_U3P_FULL_SPEED */
             {
-                buffer = (uint8_t *)CyFxUSBFSConfigDscr;
+                buffer = CyFxUSBFSConfigDscr[dscrIdx];
             }
-            buffer[1] = CY_U3P_USB_CONFIG_DESCR;                /* Mark as configuration descriptor. */
-            length    = (buffer[2] | ((uint16_t)buffer[3] << 8));
+            length = (buffer[2] | ((uint16_t)buffer[3] << 8));
             break;
 
         case CY_U3P_USB_OTHERSPEED_DESCR:
             if (usbSpeed == CY_U3P_HIGH_SPEED)
             {
-                buffer = (uint8_t *)CyFxUSBFSConfigDscr;
+                buffer = CyFxUSBFSConfigDscr[dscrIdx];
             }
             else if (usbSpeed == CY_U3P_FULL_SPEED)
             {
-                buffer = (uint8_t *)CyFxUSBHSConfigDscr;
+                buffer = CyFxUSBHSConfigDscr[dscrIdx];
             }
             else
             {
@@ -502,7 +507,6 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
 
             if (buffer != NULL)
             {
-                buffer[1] = CY_U3P_USB_OTHERSPEED_DESCR;        /* Mark as other speed configuration descriptor. */
                 length    = (buffer[2] | ((uint16_t)buffer[3] << 8));
             }
             break;
@@ -602,26 +606,19 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
 
     /* Store the value for future use and start the application. */
   case CY_U3P_USB_SC_SET_CONFIGURATION:
-    if (wValue == 1) {
-      /* If the application is already active, then disable
-       * it before re-enabling it. */
-      glUsbConfiguration = wValue;
+    glUsbConfiguration = wValue;
+    if (glUsbConfiguration == 0) {
       if (glIsApplnActive) {
-	CyFxNitroApplnStop ();
+        CyFxNitroApplnStop ();
+      }
+    } else {
+      if (glIsApplnActive) {
+        CyFxNitroApplnStop ();
       }
       /* Start the loop back function. */
+      // up to plugins to check glUsbConfiguration
+      // and set up endpoints/config appropriately
       CyFxNitroApplnStart ();
-    } else {
-      if (wValue == 0) {
-	/* Stop the loop back function. */
-	glUsbConfiguration = wValue;
-	if (glIsApplnActive) {
-	  CyFxNitroApplnStop ();
-	}
-      } else {
-	/* Invalid configuration value. Fail the request. */
-	CyU3PUsbStall (0, CyTrue, CyFalse);
-      }
     }
     break;
 
@@ -643,7 +640,9 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
       isHandled=CyFalse;
     } else {
       glInterfaceAltSettings[wIndex] = wValue;
+#ifdef INTF_CALLBACK
       INTF_CALLBACK ( wIndex, wValue );
+#endif
     }
     break;
 
@@ -863,7 +862,7 @@ void CyFxNitroApplnInit (void) {
     apiRetStatus = CyU3PUsbSetTxSwing(127); // per Cypress tech phyerr doc
     log_debug ( "Tx Swing ret: %d\n" , apiRetStatus );
     #ifdef CX3
-    // ONE THE CX3, the power input is the same as the batt input.
+    // ON THE CX3, the power input is the same as the batt input.
     // if we have lower voltage than 5v (iPhone) the usb bus won't
     // turn on without enabling the batt input.
     // for FX3 however they are different inputs and enabling VBatt
