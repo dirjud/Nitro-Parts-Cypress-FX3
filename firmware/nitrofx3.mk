@@ -11,6 +11,7 @@ FX3FWROOT = $(CYFX3SDK)
 #FX3PFWROOT = $(CYFX3SDK)/firmware/u3p_firmware
 CYCONFOPT?=fx3_release
 CYDEVICE?=CYUSB3011
+COMPILE_DEPS?=
 
 ifeq ($(CYDEVICE),CYUSB3065)
 include $(CYFX3SDK)/fw_build/fx3_fw/cx3_build_config.mak
@@ -66,7 +67,7 @@ GEN_IMAGE       = $(ELF2IMG)  -i $< -o $@ -imgtype 0xB0 -i2cconf 0x1E
 $(MODULE).img: $(MODULE).$(EXEEXT)
 	$(GEN_IMAGE)
 
-compile: $(GENDIR)/vidpid.h $(C_OBJECT) $(A_OBJECT) $(EXES) $(MODULE).img
+compile: $(GENDIR)/vidpid.h $(COMPILE_DEPS) $(C_OBJECT) $(A_OBJECT) $(EXES) $(MODULE).img
 
 clean:
 	rm -f ./$(MODULE).img
