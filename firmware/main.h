@@ -83,6 +83,7 @@ extern CyU3PEvent glThreadEvent;       /* event to cause app thread to wake up *
 #define NITRO_EVENT_VENDOR_CMD  (1<<0) /* mask for vendor commands */
 #define NITRO_EVENT_DATA        (1<<1) /* DI transaction started. */
 #define NITRO_EVENT_BREAK        (1<<2) /* break the main loop */
+#define NITRO_EVENT_REBOOT       (1<<3) /* reboot the firmware */
 
 extern uint8_t glUsbConfiguration;
 

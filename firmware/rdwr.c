@@ -27,7 +27,7 @@ extern uint8_t glEp0Buffer[]; // dma aligned buffer for ep0 read/writes
 void rdwr_teardown() {
   gRdwrCmd.done=1;
   if(gRdwrCmd.io_handler && gRdwrCmd.io_handler->handler->handler_teardown) {
-      gRdwrCmd.io_handler->handler->handler_teardown();     
+      gRdwrCmd.io_handler->handler->handler_teardown();
   }
 }
 
@@ -55,7 +55,7 @@ void RDWR_DONE(CyBool_t main) {
 /******************************************************************************/
 
 CyU3PReturnStatus_t ep0_rdwr_setup() {
-    // Fetch the rdwr command  
+    // Fetch the rdwr command
     // NOTE this api call acks the vendor command if it's successful
     CyU3PReturnStatus_t status = CyU3PUsbGetEP0Data(sizeof(rdwr_data_header_t), glEp0Buffer, 0);
 
@@ -79,7 +79,7 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
     }
 
     RDWR_DONE(CyTrue); // if the last transaction failed go ahead and release the mutex before starting.
-  
+
     return start_rdwr ( wValue, wIndex, ep0_rdwr_setup
     #ifdef FIRMWARE_DI
      , CyFalse
@@ -90,7 +90,7 @@ CyU3PReturnStatus_t handle_rdwr(uint8_t bReqType, uint16_t wValue, uint16_t wInd
 
 /*
  * This function initializes gRdwrCmd and initializes the correct handler.
- * It can be called directly by firmware internal features needing to start a 
+ * It can be called directly by firmware internal features needing to start a
  * transaction as long as the rdwr_setup function populates gRdwrCmd.header correctly.
  */
 
@@ -110,7 +110,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
    if (!firmware_di) gRdwrLocked = CyTrue; // track if we're locking from the main thread.
    mutex_log( "\n-%cL-\n", firmware_di ? 'd' : 'm' );
  #endif
- 
+
   io_handler_t *new_handler = NULL;
 
   // Select the appropriate handler. Any handler specified with term_addr of
@@ -123,8 +123,8 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   int i = 0;
   while(io_handlers[i].handler) {
     if ((io_handlers[i].handler->handler_filter &&
-         io_handlers[i].handler->handler_filter(term)) ||        
-        io_handlers[i].term_addr == term) { 
+         io_handlers[i].handler->handler_filter(term)) ||
+        io_handlers[i].term_addr == term) {
       new_handler = &(io_handlers[i]);
       log_debug("Found handler %d\n", i);
       break;
@@ -134,7 +134,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   #ifdef FIRMWARE_DI
   }
   #endif
-  
+
   // if we are switching handlers, uninit the previous handler
   // uninit function
   if(gRdwrCmd.io_handler != new_handler) {
@@ -147,11 +147,11 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   // first tear down previous handlers DMA channels
   // only if we're switching handler types
   if(gRdwrCmd.io_handler && (
-	!new_handler || 
+	!new_handler ||
  	gRdwrCmd.io_handler->handler != new_handler->handler )) {
     log_debug ( "switching handler types, teardown old handler\n");
     if (gRdwrCmd.io_handler->handler->handler_teardown)
-        gRdwrCmd.io_handler->handler->handler_teardown();        
+        gRdwrCmd.io_handler->handler->handler_teardown();
   }
 
   // now setup the new handler types DMA channels
@@ -161,29 +161,29 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   if (new_handler &&
       new_handler->handler->handler_setup) {
         log_debug ( "setup new handler type\n");
-        status=new_handler->handler->handler_setup(len_hint);      
+        status=new_handler->handler->handler_setup(len_hint);
         if (status) {
           log_error ( "gRdWrCmd.io_handler failed to setup. %d\n", status );
-          return status; 
-        }     
+          return status;
+        }
   }
 
   gRdwrCmd.io_handler = new_handler;
 
   // dma channels should be set up at this point,
-  // ack the vender 
+  // ack the vender
   // some handlers init need to know header info
   // so ack vendor command now
   gRdwrCmd.done    = 0;
   gRdwrCmd.transfered_so_far = 0;
 
-  // NOTE see function documentation.  
-  // TODO - do we need a mutex to stop the 
-  // data thread from calling read or write before the 
+  // NOTE see function documentation.
+  // TODO - do we need a mutex to stop the
+  // data thread from calling read or write before the
   // init below is done?
   status = rdwr_setup();
-  if (status) return status; 
-  
+  if (status) return status;
+
 
   // init called every time on new trans
   if (gRdwrCmd.io_handler && gRdwrCmd.io_handler->init_handler)
@@ -195,12 +195,12 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
      return status;
    }
   }
-  
-   
+
+
   // call the new handlers start function, if it exists
   if (gRdwrCmd.io_handler) {
      if (gRdwrCmd.io_handler->handler->handler_start) {
-        status= gRdwrCmd.io_handler->handler->handler_start();     
+        status= gRdwrCmd.io_handler->handler->handler_start();
         if (status) return status;
      }
   } else {
@@ -210,7 +210,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
 
   log_debug ( "rdwr command (%c) type: %d, term %d reg %d len %d (old done=%d tx=%d)\n",
 #ifdef FIRMWARE_DI
-      firmware_di ? 'd' : 'm', 
+      firmware_di ? 'd' : 'm',
 #else
       'm',
 #endif
@@ -273,13 +273,13 @@ CyBool_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
   //   preamble.buffer[1] = (uint8_t)(reg_addr >> 8);
   //   preamble.buffer[2] = (uint8_t)(reg_addr & 0xFF);
   //   preamble.ctrlMask  = 0x0000;
-    
+
   //   status = CyU3PI2cTransmitBytes(&preamble, gSerialNum, 16, 1);
   //   if(status) {
   //     log_error("Error writing serial num to I2C (%d)\n", status);
   //     return CyFalse;
   //   }
-    
+
   //   /* Wait for the write to complete. */
   //   preamble.length = 1;
   //   status = CyU3PI2cWaitForAck(&preamble, 200);
@@ -287,7 +287,7 @@ CyBool_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
   //     log_error("Error waiting for i2c ACK after writing serial num (%d)\n", status);
   //     return CyFalse;
   //   }
-    
+
   //   /* An additional delay seems to be required after receiving an ACK. */
   //   CyU3PThreadSleep (1);
   //   return CyTrue;
@@ -303,7 +303,7 @@ CyBool_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
 /******************************************************************************/
 CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
 			   uint8_t  bType, uint8_t bTarget,
-			   uint16_t wValue, uint16_t wIndex, 
+			   uint16_t wValue, uint16_t wIndex,
 			   uint16_t wLength) {
 
   //log_debug("Entering handle_vendor_cmd\n");
@@ -327,13 +327,9 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
 
   case VC_RENUM:
 
-    #ifdef CX3
-    CyU3PCx3DeviceReset(CyFalse,CyFalse); // additional reset for mipi stuff
-    #else
-    CyU3PDeviceReset(CyFalse); // cold boot from prom
-    #endif
-    break; // for readability but the above function actually doesn't return.
-    
+    CyU3PEventSet(&glThreadEvent, NITRO_EVENT_REBOOT, CYU3P_EVENT_OR);
+    break; 
+
   default:
     isHandled = CyFalse;
     break;

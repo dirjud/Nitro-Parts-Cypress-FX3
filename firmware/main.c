@@ -911,7 +911,7 @@ void NitroDataThread_Entry (uint32_t input) {
 void NitroAppThread_Entry (uint32_t input) {
 
   CyU3PReturnStatus_t ret;
-  uint32_t eventMask = NITRO_EVENT_VENDOR_CMD|NITRO_EVENT_BREAK; // can add more events
+  uint32_t eventMask = NITRO_EVENT_VENDOR_CMD|NITRO_EVENT_BREAK|NITRO_EVENT_REBOOT; // can add more events
   uint32_t eventStat;
 
   /* Initialize the debug and other io modules module */
@@ -972,7 +972,19 @@ void NitroAppThread_Entry (uint32_t input) {
                 ((glSetupDat1 & CY_U3P_USB_INDEX_MASK)   >> CY_U3P_USB_INDEX_POS), // wIndex
                 ((glSetupDat1 & CY_U3P_USB_LENGTH_MASK)  >> CY_U3P_USB_LENGTH_POS) ); // wLength
         }
+
+        if (eventStat & NITRO_EVENT_REBOOT) {
+            CyU3PThreadSleep(500);
+            #ifdef CX3
+            CyU3PCx3DeviceReset(CyFalse,CyFalse); // additional reset for mipi stuff
+            #else
+            CyU3PDeviceReset(CyFalse); // cold boot from prom
+            #endif
+            // doesn't return
+        }
+
     }
+
 
 /*    uint8_t curState;*/
 /*    CyU3PGpifGetSMState(&curState);*/
