@@ -192,7 +192,7 @@ const uint8_t CyFxUSBHSConfigDscr1[] __attribute__ ((aligned (32))) =
     0x09,                           /* Descriptor size */
     CY_U3P_USB_CONFIG_DESCR,        /* Configuration descriptor type */
     0x29,0x00,                      /* Length of this descriptor and all sub descriptors */
-    0x02,                           /* Number of interfaces */
+    0x01,                           /* Number of interfaces */
     0x01,                           /* Configuration number */
     0x00,                           /* COnfiguration string index */
     0x80,                           /* Config characteristics - bus powered */

@@ -26,9 +26,13 @@ extern uint8_t glEp0Buffer[]; // dma aligned buffer for ep0 read/writes
 
 void rdwr_teardown() {
   gRdwrCmd.done=1;
+  if(gRdwrCmd.io_handler && gRdwrCmd.io_handler->uninit_handler) {
+    gRdwrCmd.io_handler->uninit_handler();
+  }
   if(gRdwrCmd.io_handler && gRdwrCmd.io_handler->handler->handler_teardown) {
       gRdwrCmd.io_handler->handler->handler_teardown();
   }
+  gRdwrCmd.io_handler=NULL;
 }
 
 #ifdef FIRMWARE_DI

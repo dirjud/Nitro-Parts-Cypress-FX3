@@ -44,6 +44,15 @@ void log_set_interface(uint8_t interface, uint8_t alt) {
 void INTF_CALLBACK(uint8_t, uint8_t);
 #endif
 
+#ifndef NITRO_INTERFACE_IDX
+// custom firmware might potentially place the nitro interface
+// after another interface in which case it should define
+// what the interface number is in order to shut down the endpoints
+// on interface change etc.
+#define NITRO_INTERFACE_IDX 0
+#endif
+
+
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
 CyU3PThread NitroDataThread;
 #ifdef FIRMWARE_DI
@@ -640,6 +649,12 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
       isHandled=CyFalse;
     } else {
       glInterfaceAltSettings[wIndex] = wValue;
+      if (wIndex==NITRO_INTERFACE_IDX) {
+        if (wValue && !glIsApplnActive)
+          CyFxNitroApplnStart();
+        if (!wValue && glIsApplnActive)
+          CyFxNitroApplnStop();
+      }
 #ifdef INTF_CALLBACK
       INTF_CALLBACK ( wIndex, wValue );
 #endif

@@ -262,6 +262,7 @@ uint16_t cpu_handler_setup(uint16_t unused) {
 /* This function tears down the DMA channels setup for CPU type handlers. */
 void cpu_handler_teardown(void) {
   /* Destroy the channels */
+  log_debug ( "cpu handler teardown\n");
   gCpuHandlerActive = CyFalse;
   CyU3PDmaChannelDestroy (&glChHandleBulkSink);
   CyU3PDmaChannelDestroy (&glChHandleBulkSrc);
