@@ -22,6 +22,9 @@ uint16_t fx3_read(CyU3PDmaBuffer_t* pBuf) {
        case FX3_USB3:
         ret=gRdwrCmd.ep_buffer_size == 1024 ? 1 : 0;
         break;
+       case FX3_RDWR_INIT_STAT:
+        ret=gRdwrCmdInitStat;
+        break;
        default:
            return 1;
     }

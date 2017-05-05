@@ -21,6 +21,7 @@
 #endif
 
 rdwr_cmd_t gRdwrCmd;
+uint16_t gRdwrCmdInitStat=0;
 uint8_t gSerialNum[32] __attribute__ ((aligned (32))); // actually 16 bytes but DMACache requires multiple of 32
 extern uint8_t glEp0Buffer[]; // dma aligned buffer for ep0 read/writes
 
@@ -178,8 +179,6 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   // ack the vender
   // some handlers init need to know header info
   // so ack vendor command now
-  gRdwrCmd.done    = 0;
-  gRdwrCmd.transfered_so_far = 0;
 
   // NOTE see function documentation.
   // TODO - do we need a mutex to stop the
@@ -188,6 +187,11 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   status = rdwr_setup();
   if (status) return status;
 
+  // NOTE from here on..
+  // return value should be 0 regardless of status
+  // on init funcs because the vendor command has been acked.
+  // returning a status code will not report to the driver
+  // an error has occurred
 
   // init called every time on new trans
   if (gRdwrCmd.io_handler && gRdwrCmd.io_handler->init_handler)
@@ -195,22 +199,30 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     log_debug ( "init new handler\n");
     status=gRdwrCmd.io_handler->init_handler();
     if (status) {
-      log_error ( "handler fail to init\n");
-     return status;
+      gRdwrCmdInitStat=status;
+      log_error ( "handler fail to init %d\n", status);
+      return 0;
    }
   }
-
 
   // call the new handlers start function, if it exists
   if (gRdwrCmd.io_handler) {
      if (gRdwrCmd.io_handler->handler->handler_start) {
-        status= gRdwrCmd.io_handler->handler->handler_start();
-        if (status) return status;
+        status = gRdwrCmd.io_handler->handler->handler_start();
+        if (status) {
+          gRdwrCmdInitStat=status;
+          log_error ( "handler_start fail %d\n", status);
+          return 0;
+        }
      }
   } else {
     log_error ( "Handler is NULL\n" );
   }
 
+  // TODO is this enough moving done = 0 to this point
+  // to ensure the data thread doesn't start before cmd start is run?
+  gRdwrCmd.transfered_so_far = 0;
+  gRdwrCmd.done    = 0;
 
   log_debug ( "rdwr command (%c) type: %d, term %d reg %d len %d (old done=%d tx=%d)\n",
 #ifdef FIRMWARE_DI
@@ -227,7 +239,7 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
 
   CyU3PEventSet(&glThreadEvent, NITRO_EVENT_DATA, CYU3P_EVENT_OR);
 
-  return status;
+  return 0;
 }
 
 /******************************************************************************/

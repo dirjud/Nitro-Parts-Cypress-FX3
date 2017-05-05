@@ -14,11 +14,12 @@ typedef struct {
   uint8_t done;                // has this command been handled?
   uint32_t transfered_so_far;  // used by handler to know how much data it has transfered so far
 #ifdef FIRMWARE_DI
-  CyU3PMutex rdwr_mutex;      // used to lock transactions if firmware device interface enabled. 
+  CyU3PMutex rdwr_mutex;      // used to lock transactions if firmware device interface enabled.
 #endif
 } rdwr_cmd_t;
 
 extern rdwr_cmd_t gRdwrCmd;
+extern uint16_t gRdwrCmdInitStat; // last status of failed init handler in rdwr_start
 
 #ifdef FIRMWARE_DI
  void RDWR_DONE(CyBool_t main); // set true for main thread otherwise false.

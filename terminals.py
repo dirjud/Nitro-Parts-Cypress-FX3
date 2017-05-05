@@ -74,7 +74,9 @@ di=DeviceInterface(
                 Register(name='USB3',
                          mode='read',
                          comment="Return 1 if device enumerated in usb3 mode"),
-
+                Register(name='rdwr_init_stat',
+                         mode='read',
+                         comment="Status of last trans init" ),
              ]
          ),
          fx3_prom_term
