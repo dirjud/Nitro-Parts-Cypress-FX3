@@ -803,6 +803,15 @@ void CyFxNitroApplnUSBEventCB (
   case CY_U3P_USB_EVENT_EP_UNDERRUN:
     log_warn ( "USB DATA UNDERRUN\n" );
     break;
+  case CY_U3P_USB_EVENT_USB3_LNKFAIL:
+    log_warn ( "USB3 LINK FAIL\n");
+    break;
+  case CY_U3P_USB_EVENT_SS_COMP_ENTRY:
+    log_warn ( "USB3 compliance entry\n");
+    break;
+  case CY_U3P_USB_EVENT_SS_COMP_EXIT:
+    log_warn ( "USB3 compliance exit\n");
+    break;
   default:
     log_info ( "Unhandled %d\n", evtype );
     break;
@@ -874,8 +883,8 @@ void CyFxNitroApplnInit (void) {
 
   if (!no_renum) {
     /* Connect the USB Pins with super speed operation enabled. */
-    apiRetStatus = CyU3PUsbSetTxSwing(127); // per Cypress tech phyerr doc
-    log_debug ( "Tx Swing ret: %d\n" , apiRetStatus );
+    //apiRetStatus = CyU3PUsbSetTxSwing(127); // per Cypress tech phyerr doc
+    //log_debug ( "Tx Swing ret: %d\n" , apiRetStatus );
     #ifdef CX3
     // ON THE CX3, the power input is the same as the batt input.
     // if we have lower voltage than 5v (iPhone) the usb bus won't
@@ -1101,7 +1110,7 @@ CyU3PReturnStatus_t init_io() {
   io_cfg.isDQ32Bit = CyFalse;
   io_cfg.useUart   = CyTrue;
   io_cfg.useI2C    = CyTrue;
-  io_cfg.useI2S    = CyTrue;
+  io_cfg.useI2S    = CyFalse;
   io_cfg.useSpi    = CyTrue;
 #else
   io_cfg.isDQ32Bit = CyTrue;
@@ -1112,16 +1121,6 @@ CyU3PReturnStatus_t init_io() {
 #endif
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
 
-  // TODO these could change on different boards
-  // 22 = VCON_EN
-  // 23 = HICS for fpga
-  // 26 = LP_B
-  // 27 = V18_EN
-  // 57 = prog_b for the fpga
-  /* io_cfg.gpioSimpleEn[0]  = (1<<22) | (1 << 23) | (1<<26) | (1<<27);
-  io_cfg.gpioSimpleEn[1]  = (1 << (57-32));
-  io_cfg.gpioComplexEn[0] = 0;
-  io_cfg.gpioComplexEn[1] = 0; */
   return  CyU3PDeviceConfigureIOMatrix (&io_cfg);
 }
 
