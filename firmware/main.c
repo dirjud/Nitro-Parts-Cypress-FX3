@@ -1114,10 +1114,15 @@ CyU3PReturnStatus_t init_io() {
   io_cfg.useSpi    = CyTrue;
 #else
   io_cfg.isDQ32Bit = CyTrue;
+#ifdef ENABLE_LOGGING
   io_cfg.useUart   = CyTrue;
+  io_cfg.useSpi    = CyFalse;
+#else
+  io_cfg.useUart   = CyFalse;
+  io_cfg.useSpi    = CyTrue;
+#endif
   io_cfg.useI2C    = CyTrue;
   io_cfg.useI2S    = CyFalse;
-  io_cfg.useSpi    = CyFalse;
 #endif
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
 
