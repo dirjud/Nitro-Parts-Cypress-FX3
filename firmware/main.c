@@ -29,28 +29,6 @@ void GPIO_INTERRUPT (uint8_t);
 #define SS_INIT CyTrue
 #endif
 
-/**
- * set interface callback.  Allows firmware
- * to be notified if an interface is selected.
- **/
-#ifndef INTF_CALLBACK
-#ifdef ENABLE_LOGGING
-#define INTF_CALLBACK log_set_interface
-void log_set_interface(uint8_t interface, uint8_t alt) {
-  log_info ( "Set Interface %d Alt %d\n", interface, alt);
-}
-#endif
-#else
-void INTF_CALLBACK(uint8_t, uint8_t);
-#endif
-
-#ifndef NITRO_INTERFACE_IDX
-// custom firmware might potentially place the nitro interface
-// after another interface in which case it should define
-// what the interface number is in order to shut down the endpoints
-// on interface change etc.
-#define NITRO_INTERFACE_IDX 0
-#endif
 
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
@@ -73,6 +51,36 @@ uint8_t *glSelBuffer = 0;               /* Buffer to hold SEL values.           
 
 CyBool_t glIsApplnActive = CyFalse;     /* Whether the loopback application is active or not. */
 extern rdwr_cmd_t gRdwrCmd;
+
+
+#ifndef NITRO_INTERFACE_IDX
+// custom firmware might potentially place the nitro interface
+// after another interface in which case it should define
+// what the interface number is in order to shut down the endpoints
+// on interface change etc.
+#define NITRO_INTERFACE_IDX 0
+#endif
+
+/**
+ * set interface callback.  Allows firmware
+ * to be notified if an interface is selected.
+ **/
+#ifndef INTF_CALLBACK
+#define INTF_CALLBACK default_set_interface
+void CyFxNitroApplnStart (); // predefs
+void CyFxNitroApplnStop ();
+void default_set_interface(uint8_t interface, uint8_t alt) {
+  log_info ( "Set Interface %d Alt %d\n", interface, alt);
+  if (interface==NITRO_INTERFACE_IDX) {
+    if (alt && !glIsApplnActive)
+      CyFxNitroApplnStart();
+    if (!alt && glIsApplnActive)
+      CyFxNitroApplnStop();
+  }
+}
+#else
+void INTF_CALLBACK(uint8_t, uint8_t);
+#endif
 
 void init_i2c() {
   CyU3PI2cConfig_t i2cConfig;
@@ -649,15 +657,7 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
       isHandled=CyFalse;
     } else {
       glInterfaceAltSettings[wIndex] = wValue;
-      if (wIndex==NITRO_INTERFACE_IDX) {
-        if (wValue && !glIsApplnActive)
-          CyFxNitroApplnStart();
-        if (!wValue && glIsApplnActive)
-          CyFxNitroApplnStop();
-      }
-#ifdef INTF_CALLBACK
       INTF_CALLBACK ( wIndex, wValue );
-#endif
     }
     break;
 
