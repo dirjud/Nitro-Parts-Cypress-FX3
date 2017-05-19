@@ -4,9 +4,6 @@
 #include <cyu3types.h>
 
 void error_handler(CyU3PReturnStatus_t apiRetStatus);
-//
-// TODO replace error_handler calls with log_error and
-// handle in app.  Unless we can find a good way to make a universal handler.
-
+void error_handler_0(CyU3PReturnStatus_t apiRetStatus, CyBool_t init);
 
 #endif

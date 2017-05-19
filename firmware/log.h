@@ -10,7 +10,7 @@
  *  (Note right now thread id requires location)
  **/
 
-#if ENABLE_LOGGING
+#ifdef ENABLE_LOGGING
 
 #include <cyu3system.h>
 
@@ -42,7 +42,7 @@ enum {
 #define log_stmt(LEVEL,X, ...) do {\
     CyU3PDebugPrint(LEVEL, "%s:%d " X, __FILE__, __LINE__, ##__VA_ARGS__); /* CyU3PDebugLogFlush(); */ } while (0)
 #endif
-#else 
+#else
  // more simple debug
 #define log_stmt(LEVEL,X,...) do { CyU3PDebugPrint(LEVEL,X, ##__VA_ARGS__); } while (0)
 #endif

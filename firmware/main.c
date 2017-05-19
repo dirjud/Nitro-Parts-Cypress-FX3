@@ -138,7 +138,6 @@ void init_gpio (void) {
  * running at 115200 baud rate. */
 void CyFxNitroApplnDebugInit (void) {
 
-#ifdef ENABLE_LOGGING
   CyU3PUartConfig_t uartConfig;
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
 
@@ -147,7 +146,7 @@ void CyFxNitroApplnDebugInit (void) {
   apiRetStatus = CyU3PUartInit();
   if (apiRetStatus != CY_U3P_SUCCESS) {
     /* Error handling */
-    error_handler(apiRetStatus);
+    error_handler_0(apiRetStatus, CyFalse);
   }
 
   /* Set UART configuration */
@@ -162,25 +161,24 @@ void CyFxNitroApplnDebugInit (void) {
 
   apiRetStatus = CyU3PUartSetConfig (&uartConfig, NULL);
   if (apiRetStatus != CY_U3P_SUCCESS) {
-    error_handler(apiRetStatus);
+    error_handler_0(apiRetStatus, CyFalse);
   }
 
   /* Set the UART transfer to a really large value. */
   apiRetStatus = CyU3PUartTxSetBlockXfer (0xFFFFFFFFu);
   if (apiRetStatus != CY_U3P_SUCCESS) {
-    error_handler(apiRetStatus);
+    error_handler_0(apiRetStatus, CyFalse);
   }
 
   /* Initialize the debug module. */
   apiRetStatus = CyU3PDebugInit (CY_U3P_LPP_SOCKET_UART_CONS, 8);
   if (apiRetStatus != CY_U3P_SUCCESS) {
-    error_handler(apiRetStatus);
+    error_handler_0(apiRetStatus, CyFalse);
   }
   CyU3PDebugPreamble(CyFalse);
   CyU3PDebugEnable(0xFFFF);
 
   log_debug ( "Debugger Init.. should be working now.\n" );
-#endif
 }
 
 /* This function starts the nitro application. This is called when a
@@ -939,7 +937,9 @@ void NitroAppThread_Entry (uint32_t input) {
   uint32_t eventStat;
 
   /* Initialize the debug and other io modules module */
+#ifdef ENABLE_LOGGING
   CyFxNitroApplnDebugInit();
+#endif
   init_i2c();
   init_gpio();
 
@@ -947,7 +947,6 @@ void NitroAppThread_Entry (uint32_t input) {
   CyFxNitroApplnInit();
 
   log_info ( "Nitro Thread Entry\n" );
-
   for (;;) {
      log_info ( "." );
 
@@ -1115,9 +1114,11 @@ CyU3PReturnStatus_t init_io() {
 #else
   io_cfg.isDQ32Bit = CyTrue;
 #ifdef ENABLE_LOGGING
+  // if logging enabled we can use the uart
   io_cfg.useUart   = CyTrue;
   io_cfg.useSpi    = CyFalse;
 #else
+  // otherwise we can enable spi pins
   io_cfg.useUart   = CyFalse;
   io_cfg.useSpi    = CyTrue;
 #endif
@@ -1125,8 +1126,7 @@ CyU3PReturnStatus_t init_io() {
   io_cfg.useI2S    = CyFalse;
 #endif
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
-
-  return  CyU3PDeviceConfigureIOMatrix (&io_cfg);
+  return CyU3PDeviceConfigureIOMatrix (&io_cfg);
 }
 
 /* Main function */
@@ -1143,28 +1143,22 @@ int main (void) {
   clockConfig.clkSrc        = CY_U3P_SYS_CLK;
   status = CyU3PDeviceInit (&clockConfig);
   if (status != CY_U3P_SUCCESS) {
-    goto handle_fatal_error;
+    error_handler(status);
   }
 
   /* Initialize the caches. Enable both Instruction and Data caches. */
   status = CyU3PDeviceCacheControl (CyTrue, CyFalse, CyFalse);
   if (status != CY_U3P_SUCCESS) {
-    goto handle_fatal_error;
+    error_handler(status);
   }
 
   status = init_io();
 
   if (status != CY_U3P_SUCCESS) {
-    goto handle_fatal_error;
+   error_handler(status);
   }
 
   /* This is a non returnable call for initializing the RTOS kernel */
   CyU3PKernelEntry ();
-
-  /* Dummy return to make the compiler happy */
   return 0;
-
- handle_fatal_error:
-  /* Cannot recover from this error. */
-  while (1);
 }
