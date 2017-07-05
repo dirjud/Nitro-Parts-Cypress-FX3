@@ -10,6 +10,8 @@
  *  (Note right now thread id requires location)
  **/
 
+ void init_uart_debug();
+
 #ifdef ENABLE_LOGGING
 
 #include <cyu3system.h>
@@ -21,28 +23,35 @@ enum {
   LOG_DEBUG,
 };
 
+void logging_boot();
 
-#ifndef LOG_THREAD_ID
-#define LOG_THREAD_ID 0
-#endif
-#ifndef LOG_LOCATION
-#define LOG_LOCATION 0
-#endif
+#ifdef USB_LOGGING
 
-#if LOG_LOCATION
-#if LOG_THREAD_ID
-#define log_stmt(LEVEL,X, ...) do {\
-    uint8_t *pName;\
-    CyU3PThread *pThread = CyU3PThreadIdentify();\
-    CyU3PThreadInfoGet(pThread, &pName, NULL, NULL, NULL );\
-    uint16_t tId = *((uint16_t*)pName);\
-    CyU3PDebugPrint(LEVEL, "%d:%s:%d " X, tId, __FILE__, __LINE__, ##__VA_ARGS__); /* CyU3PDebugLogFlush(); */ } while (0)
+// treat logging as usb pipe instead of over UART
+#define LOG_BUFFER_SIZE 2048
+#define LOG_STMT_MAX 100
+
+
+#include "handlers.h"
+
+uint16_t log_read(CyU3PDmaBuffer_t*);
+
+void log_stmt2(unsigned LEVEL, const uint8_t* stmt);
+
+#define log_stmt(LEVEL,X,...) do { \
+  uint8_t tmp[LOG_STMT_MAX]; \
+  if (!CyU3PDebugStringPrint(tmp,LOG_BUFFER_SIZE,X, ##__VA_ARGS__)) { \
+    log_stmt2(LEVEL,tmp); \
+  } \
+} while (0)
+
+//#define log_stmt(LEVEL,X,...) do {} while(0)
+
+#define DECLARE_LOG_HANDLER(term) \
+  DECLARE_HANDLER(&glCpuHandler,term,0,0,log_read,0,0,0,0,0)
+
 #else
- // no thread ids
-#define log_stmt(LEVEL,X, ...) do {\
-    CyU3PDebugPrint(LEVEL, "%s:%d " X, __FILE__, __LINE__, ##__VA_ARGS__); /* CyU3PDebugLogFlush(); */ } while (0)
-#endif
-#else
+
  // more simple debug
 #define log_stmt(LEVEL,X,...) do { CyU3PDebugPrint(LEVEL,X, ##__VA_ARGS__); } while (0)
 #endif

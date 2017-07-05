@@ -8,11 +8,11 @@
 #include "cyu3i2c.h"
 #include "main.h"
 #include "cyu3usb.h"
-#include "cyu3uart.h"
 #include "rdwr.h"
 #include "error_handler.h"
 #include "cyu3gpio.h"
 #include "log.h"
+
 #ifndef DEBUG_MAIN
 #undef log_debug
 #define log_debug(x,...) do {} while(0)
@@ -51,6 +51,8 @@ uint8_t *glSelBuffer = 0;               /* Buffer to hold SEL values.           
 
 CyBool_t glIsApplnActive = CyFalse;     /* Whether the loopback application is active or not. */
 extern rdwr_cmd_t gRdwrCmd;
+
+CyU3PReturnStatus_t init_io();
 
 
 #ifndef NITRO_INTERFACE_IDX
@@ -131,56 +133,6 @@ void init_gpio (void) {
     log_debug ( "GPIO block initialized\n");
 }
 
-
-
-/* This function initializes the debug module. The debug prints
- * are routed to the UART and can be seen using a UART console
- * running at 115200 baud rate. */
-void CyFxNitroApplnDebugInit (void) {
-
-  CyU3PUartConfig_t uartConfig;
-  CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
-
-
-  /* Initialize the UART for printing debug messages */
-  apiRetStatus = CyU3PUartInit();
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    /* Error handling */
-    error_handler_0(apiRetStatus, CyFalse);
-  }
-
-  /* Set UART configuration */
-  CyU3PMemSet ((uint8_t *)&uartConfig, 0, sizeof (uartConfig));
-  uartConfig.baudRate = CY_U3P_UART_BAUDRATE_230400;
-  uartConfig.stopBit = CY_U3P_UART_ONE_STOP_BIT;
-  uartConfig.parity = CY_U3P_UART_NO_PARITY;
-  uartConfig.txEnable = CyTrue;
-  uartConfig.rxEnable = CyFalse;
-  uartConfig.flowCtrl = CyFalse;
-  uartConfig.isDma = CyTrue;
-
-  apiRetStatus = CyU3PUartSetConfig (&uartConfig, NULL);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    error_handler_0(apiRetStatus, CyFalse);
-  }
-
-  /* Set the UART transfer to a really large value. */
-  apiRetStatus = CyU3PUartTxSetBlockXfer (0xFFFFFFFFu);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    error_handler_0(apiRetStatus, CyFalse);
-  }
-
-  /* Initialize the debug module. */
-  apiRetStatus = CyU3PDebugInit (CY_U3P_LPP_SOCKET_UART_CONS, 8);
-  if (apiRetStatus != CY_U3P_SUCCESS) {
-    error_handler_0(apiRetStatus, CyFalse);
-  }
-  CyU3PDebugPreamble(CyFalse);
-  CyU3PDebugEnable(0xFFFF);
-
-  log_debug ( "Debugger Init.. should be working now.\n" );
-}
-
 /* This function starts the nitro application. This is called when a
  * SET_CONF event is received from the USB host. The endpoints are
  * configured in this function. */
@@ -244,7 +196,6 @@ void CyFxNitroApplnStart (void) {
   /* Drop current U1/U2 enable state values. */
   glUsbDeviceStat = 0;
 
-
   i=0;
   while ( app_init[i].type ) {
     if (app_init[i].start) app_init[i].start();
@@ -294,6 +245,8 @@ void CyFxNitroApplnStop (void) {
     log_error("CyU3PSetEpConfig failed, Error code = %d\n", apiRetStatus);
     error_handler (apiRetStatus);
   }
+
+
   i=0;
   while ( app_init[i].type ) {
     if (app_init[i].stop) app_init[i].stop();
@@ -937,9 +890,11 @@ void NitroAppThread_Entry (uint32_t input) {
   uint32_t eventStat;
 
   /* Initialize the debug and other io modules module */
-#ifdef ENABLE_LOGGING
-  CyFxNitroApplnDebugInit();
-#endif
+  ret=init_io();
+  #ifdef ENABLE_LOGGING
+  logging_boot();
+  #endif
+  log_info ("io matrix init %d\n", ret);
   init_i2c();
   init_gpio();
 
@@ -948,7 +903,9 @@ void NitroAppThread_Entry (uint32_t input) {
 
   log_info ( "Nitro Thread Entry\n" );
   for (;;) {
+    #ifndef USB_LOGGING
      log_info ( "." );
+    #endif
 
      // CyU3PGpioSimpleSetValue ( 48, io48_val);
      // io48_val = !io48_val;
@@ -1113,17 +1070,8 @@ CyU3PReturnStatus_t init_io() {
   io_cfg.useSpi    = CyTrue;
 #else
   io_cfg.isDQ32Bit = CyTrue;
-#ifdef ENABLE_LOGGING
-  // if logging enabled we can use the uart
-  io_cfg.useUart   = CyTrue;
-  io_cfg.useSpi    = CyFalse;
-#else
-  // otherwise we can enable spi pins
-  io_cfg.useUart   = CyFalse;
-  io_cfg.useSpi    = CyTrue;
-#endif
-  io_cfg.useI2C    = CyTrue;
-  io_cfg.useI2S    = CyFalse;
+  io_cfg.useUart = CyTrue;
+  io_cfg.useI2C = CyTrue;
 #endif
   io_cfg.lppMode   = CY_U3P_IO_MATRIX_LPP_DEFAULT;
   return CyU3PDeviceConfigureIOMatrix (&io_cfg);
@@ -1152,7 +1100,7 @@ int main (void) {
     error_handler(status);
   }
 
-  status = init_io();
+  //status = init_io();
 
   if (status != CY_U3P_SUCCESS) {
    error_handler(status);

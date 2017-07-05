@@ -79,6 +79,24 @@ di=DeviceInterface(
                          comment="Status of last trans init" ),
              ]
          ),
+         Terminal(
+            name="LOG",
+            comment="Logging terminal if USB_LOGGING enabled when firmware compiled.",
+            regAddrWidth=16,
+            regDataWidth=16,
+            addr=0x101,
+            register_list=[
+                Register(name="count",
+                         mode="read",
+                         comment="count of bytes available in log buffer.",
+                         width=16),
+                Register(name="log",
+                         mode="read",
+                         width=8,
+                         comment="read from this register to drain the buffer."),
+            ]
+            
+         ),
          fx3_prom_term
      ]
 )

@@ -1,8 +1,12 @@
 /* Application Error Handler */
+#include "error_handler.h"
+
 
 #include <cyu3os.h>
 #include <cyu3error.h>
-#include "error_handler.h"
+#include <cyu3uart.h>
+#include <cyu3spi.h>
+#include <cyu3i2c.h>
 
 #ifndef ENABLE_LOGGING
 // logging always enabled for error handler
@@ -29,12 +33,12 @@ if (init) {
   CyU3PI2cDeInit();
   CyU3PSpiDeInit();
   CyU3PDeviceConfigureIOMatrix (&io_cfg);
-  CyFxNitroApplnDebugInit();
+  init_uart_debug();
 }
 
 #endif
-  log_error("The app is stuck in the error_handler: %d\n", apiRetStatus );
   for (;;) {
+    log_error("The app is stuck in the error_handler: %d\n", apiRetStatus );
     /* Thread sleep : 100 ms */
     CyU3PThreadSleep (1000);
   }
