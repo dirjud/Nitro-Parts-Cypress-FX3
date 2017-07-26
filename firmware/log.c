@@ -58,12 +58,16 @@ void init_uart_debug() {
 
 #include "rdwr.h"
 
+CyBool_t glLogBoot=CyFalse;
 uint8_t log_buffer[LOG_BUFFER_SIZE];
 uint16_t glLogSize=0;
 CyU3PMutex log_mutex;
 
 void logging_boot() {
-  CyU3PMutexCreate(&log_mutex, CYU3P_NO_INHERIT);
+  if (!glLogBoot) {
+      CyU3PMutexCreate(&log_mutex, CYU3P_NO_INHERIT);
+      glLogBoot=CyTrue;
+  }
 }
 
 uint16_t log_read(CyU3PDmaBuffer_t* buf) {
