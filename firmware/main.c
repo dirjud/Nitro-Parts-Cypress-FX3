@@ -1077,13 +1077,17 @@ CyU3PReturnStatus_t init_io() {
   return CyU3PDeviceConfigureIOMatrix (&io_cfg);
 }
 
+#ifndef SYS_CLK_400
+#define SYS_CLK_400 CyTrue
+#endif
+
 /* Main function */
 int main (void) {
   CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
   /* Initialize the device */
   CyU3PSysClockConfig_t clockConfig;
-  clockConfig.setSysClk400  = CyTrue;
+  clockConfig.setSysClk400  = SYS_CLK_400;
   clockConfig.cpuClkDiv     = 2;
   clockConfig.dmaClkDiv     = 2;
   clockConfig.mmioClkDiv    = 2;
