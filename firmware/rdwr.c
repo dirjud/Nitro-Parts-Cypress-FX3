@@ -187,6 +187,10 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   status = rdwr_setup();
   if (status) return status;
 
+  // rest of the header besides done
+  gRdwrCmd.transfered_so_far = 0;
+
+
   // NOTE from here on..
   // return value should be 0 regardless of status
   // on init funcs because the vendor command has been acked.
@@ -194,6 +198,9 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
   // an error has occurred
 
   // init called every time on new trans
+  // should it be?  not symetric api with uninit
+  // TODO add start/finish and change init/uninit to only
+  // be when handler changes?
   if (gRdwrCmd.io_handler && gRdwrCmd.io_handler->init_handler)
     {
     log_debug ( "init new handler\n");
@@ -219,10 +226,13 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
     log_error ( "Handler is NULL\n" );
   }
 
-  // TODO is this enough moving done = 0 to this point
-  // to ensure the data thread doesn't start before cmd start is run?
-  gRdwrCmd.transfered_so_far = 0;
+  // TODO, the data thread will start runnign the dma callbacks
+  // once done==0.  Enough to put this at the end or do we need
+  // a mutex.
+  // TODO: slfifo handler ignores done and starts as soon as it's init_handler
+  // is run.
   gRdwrCmd.done    = 0;
+
 
   log_debug ( "rdwr command (%c) type: %d, term %d reg %d len %d (old done=%d tx=%d)\n",
 #ifdef FIRMWARE_DI
@@ -344,7 +354,7 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
   case VC_RENUM:
 
     CyU3PEventSet(&glThreadEvent, NITRO_EVENT_REBOOT, CYU3P_EVENT_OR);
-    break; 
+    break;
 
   default:
     isHandled = CyFalse;
