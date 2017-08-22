@@ -1,7 +1,7 @@
 import time
 import nitro
 from nitro_parts.Microchip.M24XX import program_fx3_prom 
-import logging
+import logging, numpy, struct
 log=logging.getLogger(__name__)
 
 
@@ -92,4 +92,18 @@ def program_new_pcb(fx3_firmware, VID, PID, di_file, fx3_prom_term='FX3_PROM'):
     dev.set_di( nitro.load_di ( di_file ) )
     program_fx3_prom(dev, fx3_firmware, fx3_prom_term)
     dev.close()
+
+
+def read_log(dev):
+    c=dev.get('LOG','count')
+    if c:
+        buf=numpy.zeros(c,dtype=numpy.uint8)
+        dev.read('LOG','log',buf)
+        while len(buf):
+            #print buf[0], # level
+            buf=buf[1:]
+            i=numpy.where(buf == 0)[0][0]
+            print struct.unpack("%ds" % i, buf[:i])[0],
+            buf=buf[i+1:]
+
 
