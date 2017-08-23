@@ -17,6 +17,7 @@ SOURCE += $(FX3DIR)handlers.c
 SOURCE += $(FX3DIR)../../../Microchip/M24XX/fx3/m24xx.c
 SOURCE += $(FX3DIR)main.c 
 SOURCE += $(FX3DIR)fx3_term.c
+SOURCE += $(FX3DIR)log.c
 # only needed if you want firmware_di
 #SOURCE += $(FX3DIR)di.c
 
