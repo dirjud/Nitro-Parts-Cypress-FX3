@@ -141,24 +141,26 @@ void CyFxNitroApplnStart (void) {
   CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
   CyU3PUSBSpeed_t usbSpeed = CyU3PUsbGetSpeed();
   int i;
-  log_debug("Entering CyFxNitroApplnStart()\n");
+  log_info("Entering CyFxNitroApplnStart() usbSpeed: ");
 
   CyU3PUsbLPMDisable(); // no low power state for us.
 
   /* Based on the Bus Speed configure the endpoint packet size */
-  log_debug("UsbSpeed: %d\n", usbSpeed);
   switch (usbSpeed) {
   case CY_U3P_FULL_SPEED:
+    log_info ( "full\n" );
     gRdwrCmd.ep_buffer_size = 64;
     break;
 
   case CY_U3P_HIGH_SPEED:
+    log_info("high\n");
     gRdwrCmd.ep_buffer_size = 512;
     break;
 
   default: // NOTE if di_main starts up app then usb speed is invalid.
            // the value is ignored anyway.
   case  CY_U3P_SUPER_SPEED:
+    log_info("SS\n");
     gRdwrCmd.ep_buffer_size = 1024;
     break;
   }
@@ -746,7 +748,7 @@ void CyFxNitroApplnUSBEventCB (
     glUsbDeviceStat = 0;
     break;
   case CY_U3P_USB_EVENT_SPEED:
-    log_info ( "USB_EVENT_SPEED\n" );
+    log_info ( "USB_EVENT_SPEED, speed: %d\n", CyU3PUsbGetSpeed() );
     break;
   case CY_U3P_USB_EVENT_EP0_STAT_CPLT:
     log_debug( "EP0_STAT_CPLT\n" );
@@ -1088,11 +1090,11 @@ int main (void) {
   /* Initialize the device */
   CyU3PSysClockConfig_t clockConfig;
   clockConfig.setSysClk400  = SYS_CLK_400;
-  clockConfig.cpuClkDiv     = 2;
-  clockConfig.dmaClkDiv     = 2;
-  clockConfig.mmioClkDiv    = 2;
+  clockConfig.cpuClkDiv     = 2; // clkSrc/2 = 201.6 or 192
+  clockConfig.dmaClkDiv     = 2; // cpuClk/2 = 100.8 or 96
+  clockConfig.mmioClkDiv    = 2; // cpuClk/2 = 100.8 or 96
   clockConfig.useStandbyClk = CyFalse;
-  clockConfig.clkSrc        = CY_U3P_SYS_CLK;
+  clockConfig.clkSrc        = CY_U3P_SYS_CLK; // if sys_clk_400 then 403.2 else 384
   status = CyU3PDeviceInit (&clockConfig);
   if (status != CY_U3P_SUCCESS) {
     error_handler(status);
