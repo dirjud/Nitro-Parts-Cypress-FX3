@@ -6,9 +6,14 @@
 #include "vendor_commands.h"
 #include "rdwr.h"
 #include "main.h"
-#include "fx3_terminals.h"
-#include <cyu3i2c.h>
+//#include "fx3_terminals.h"
+//#include <cyu3i2c.h>
 //#include <m24xx.h>
+
+// provided by serial.c
+// or another file
+extern uint16_t set_serial(uint8_t*);
+extern uint16_t get_serial(uint8_t*);
 
 #include "log.h"
 #ifndef DEBUG_RDWR
@@ -22,7 +27,7 @@
 
 rdwr_cmd_t gRdwrCmd;
 uint16_t gRdwrCmdInitStat=0;
-uint8_t gSerialNum[32] __attribute__ ((aligned (32))); // actually 16 bytes but DMACache requires multiple of 32
+//uint8_t gSerialNum[32] __attribute__ ((aligned (32))); // actually 16 bytes but DMACache requires multiple of 32
 extern uint8_t glEp0Buffer[]; // dma aligned buffer for ep0 read/writes
 
 void rdwr_teardown() {
@@ -253,76 +258,42 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
 }
 
 /******************************************************************************/
-CyBool_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
-
-  return CyTrue;
-  // CyU3PI2cPreamble_t preamble;
-  // uint32_t reg_addr = FX3_PROM_SERIALNUM0_0;
-  // uint8_t dev_addr = 0x50;
-  // uint8_t size = 17; // size of prom
-  // uint16_t status;
-
-  // if (wLength != 16) {
-  //   log_error("Bad length=%d \n", wLength);
-  //   return CY_U3P_ERROR_BAD_ARGUMENT;
-  // }
-
-  // switch(bReqType) {
-  // case 0xC0:
-  //   preamble.length    = 4;
-  //   preamble.buffer[0] = m24xx_get_dev_addr(dev_addr, reg_addr, size, 0);
-  //   preamble.buffer[1] = (uint8_t)(reg_addr >> 8);
-  //   preamble.buffer[2] = (uint8_t)(reg_addr & 0xFF);
-  //   preamble.buffer[3] = m24xx_get_dev_addr(dev_addr, reg_addr, size, 1);
-  //   preamble.ctrlMask  = 0x0004;
-  //   status = CyU3PI2cReceiveBytes (&preamble, gSerialNum, 16, 1);
-  //   if(status) {
-  //     log_error("Error reading serial num from prom (%d)\n", status);
-  //     return CyFalse;
-  //   }
-  //   status = CyU3PUsbSendEP0Data(16, gSerialNum);
-  //   if(status) {
-  //     log_error("Error Sending serial num to EP0 (%d)\n", status);
-  //     return CyFalse;
-  //   }
-  //   return CyTrue;
-
-  // case 0x40:
-  //   status = CyU3PUsbGetEP0Data(wLength, gSerialNum, 0);
-  //   if(status) {
-  //     log_error("Error getting serial num from EP0 (%d)\n", status);
-  //     return status;
-  //   }
-
-  //   preamble.length    = 3;
-  //   preamble.buffer[0] = m24xx_get_dev_addr(dev_addr, reg_addr, size, 0);
-  //   preamble.buffer[1] = (uint8_t)(reg_addr >> 8);
-  //   preamble.buffer[2] = (uint8_t)(reg_addr & 0xFF);
-  //   preamble.ctrlMask  = 0x0000;
-
-  //   status = CyU3PI2cTransmitBytes(&preamble, gSerialNum, 16, 1);
-  //   if(status) {
-  //     log_error("Error writing serial num to I2C (%d)\n", status);
-  //     return CyFalse;
-  //   }
-
-  //   /* Wait for the write to complete. */
-  //   preamble.length = 1;
-  //   status = CyU3PI2cWaitForAck(&preamble, 200);
-  //   if(status) {
-  //     log_error("Error waiting for i2c ACK after writing serial num (%d)\n", status);
-  //     return CyFalse;
-  //   }
-
-  //   /* An additional delay seems to be required after receiving an ACK. */
-  //   CyU3PThreadSleep (1);
-  //   return CyTrue;
+CyU3PReturnStatus_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
 
 
-  // default:
-  //   log_error("Bad ReqType=%d \n", bReqType);
-  //   return CY_U3P_ERROR_BAD_ARGUMENT;
-  // }
+  CyU3PReturnStatus_t status;
+
+  if (wLength != 16) {
+      log_error ( "Bad serial number length: %d\n", wLength);
+      return CY_U3P_ERROR_BAD_ARGUMENT;
+  }
+
+  switch (bReqType) {
+      case 0xc0: // get serial
+           status = get_serial(glEp0Buffer);
+           if (status) return status;
+
+            status = CyU3PUsbSendEP0Data(16, glEp0Buffer);
+            if (status) {
+              log_error("Error Sending serial num to EP0 (%d)\n", status);
+              return CyFalse;
+            }
+            break;
+      case 0x40: // set_serial
+            status = CyU3PUsbGetEP0Data(16, glEp0Buffer, 0);
+            if (status) {
+                log_error("Error getting serial num from EP0 (%d)\n", status);
+                return status;
+            }
+
+            status = set_serial(glEp0Buffer);
+            if (status) return status;
+            break;
+        default:
+            return CY_U3P_ERROR_BAD_OPTION;
+  }
+
+  return 0;
 }
 
 
@@ -346,10 +317,6 @@ CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
   case VC_SERIAL:
     status = handle_serial_num(bReqType, wLength);
     break;
-
-//  case VC_RDWR_RAM:
-//    status = handleRamRdwr(bRequest, bReqType, bType, bTarget, wValue, wIndex, wLength);
-//    break;
 
   case VC_RENUM:
 
