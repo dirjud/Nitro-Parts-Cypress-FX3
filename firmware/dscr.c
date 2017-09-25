@@ -23,7 +23,7 @@
 /* This file contains the USB enumeration descriptors for the bulk loop application example.
  * The descriptor arrays must be 32 byte aligned and multiple of 32 bytes if the D-cache is
  * turned on. If the linker used is not capable of supporting the aligned feature for this,
- * either the descriptors must be placed in a different section and the section should be 
+ * either the descriptors must be placed in a different section and the section should be
  * 32 byte aligned and 32 byte multiple; or dynamically allocated buffer allocated using
  * CyU3PDmaBufferAlloc must be used, and the descriptor must be loaded into it. The example
  * assumes that the aligned attribute for 32 bytes is supported by the linker. Do not add
@@ -203,7 +203,7 @@ const uint8_t CyFxUSBHSConfigDscr1[] __attribute__ ((aligned (32))) =
     CY_U3P_USB_INTRFC_DESCR,        /* Interface Descriptor type */
     0x00,                           /* Interface number */
     0x00,                           /* Alternate setting number */
-    0x02,                           /* Number of endpoints */
+    0x00,                           /* Number of endpoints */
     0xFF,                           /* Interface class */
     0x1F,                           /* Interface sub class */
     0x01,                           /* Interface protocol code */
@@ -334,4 +334,3 @@ const uint8_t* CyFxUSBStringPtrs[] = {
 const uint8_t CyFxUsbDscrAlignBuffer[32] __attribute__ ((aligned (32)));
 
 /* [ ] */
-
