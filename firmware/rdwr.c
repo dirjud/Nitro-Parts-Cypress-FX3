@@ -258,6 +258,8 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
 }
 
 /******************************************************************************/
+CyBool_t gSerialCached=CyFalse;
+uint8_t gSerialNum[16];
 CyU3PReturnStatus_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
 
 
@@ -270,8 +272,14 @@ CyU3PReturnStatus_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
 
   switch (bReqType) {
       case 0xc0: // get serial
-           status = get_serial(glEp0Buffer);
-           if (status) return status;
+           if (gSerialCached) {
+               CyU3PMemCopy(glEp0Buffer,gSerialNum,16);
+           } else {
+               status = get_serial(glEp0Buffer);
+               if (status) return status;
+               CyU3PMemCopy(gSerialNum,glEp0Buffer,16);
+               gSerialCached=CyTrue;
+           }
 
             status = CyU3PUsbSendEP0Data(16, glEp0Buffer);
             if (status) {
@@ -288,6 +296,9 @@ CyU3PReturnStatus_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
 
             status = set_serial(glEp0Buffer);
             if (status) return status;
+
+            CyU3PMemCopy(gSerialNum,glEp0Buffer,16);
+            gSerialCached=CyTrue;
             break;
         default:
             return CY_U3P_ERROR_BAD_OPTION;
