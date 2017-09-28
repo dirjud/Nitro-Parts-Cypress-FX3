@@ -260,6 +260,17 @@ CyU3PReturnStatus_t start_rdwr( uint16_t term, uint16_t len_hint, rdwr_setup_han
 /******************************************************************************/
 CyBool_t gSerialCached=CyFalse;
 uint8_t gSerialNum[16];
+
+#ifdef ENABLE_LOGGING
+#define log_serial() \
+  do { \
+  for (int i=0;i<16;i+=2) \
+    log_info ( "%c", glEp0Buffer[i] ); \
+  } while (0);
+#else
+#define log_serial()
+#endif
+
 CyU3PReturnStatus_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
 
 
@@ -274,9 +285,13 @@ CyU3PReturnStatus_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
       case 0xc0: // get serial
            if (gSerialCached) {
                CyU3PMemCopy(glEp0Buffer,gSerialNum,16);
+               log_info ( "Return cached serial.." );
+               log_serial();
            } else {
                status = get_serial(glEp0Buffer);
                if (status) return status;
+               log_info ( "Return prom serial.." );
+               log_serial();
                CyU3PMemCopy(gSerialNum,glEp0Buffer,16);
                gSerialCached=CyTrue;
            }
@@ -294,8 +309,13 @@ CyU3PReturnStatus_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
                 return status;
             }
 
+            log_info ( "Setting new serial number: " );
+            log_serial();
+
             status = set_serial(glEp0Buffer);
             if (status) return status;
+
+            log_info ( "... ok\n" );
 
             CyU3PMemCopy(gSerialNum,glEp0Buffer,16);
             gSerialCached=CyTrue;
