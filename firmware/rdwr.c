@@ -264,7 +264,8 @@ uint8_t gSerialNum[16];
 #ifdef ENABLE_LOGGING
 #define log_serial() \
   do { \
-  for (int i=0;i<16;i+=2) \
+  int i; \
+  for (i=0;i<16;i+=2) \
     log_info ( "%c", glEp0Buffer[i] ); \
   } while (0);
 #else
