@@ -26,7 +26,11 @@ endif
 
 Include += -I$(GENDIR) $(INCLUDES) -I$(FX3DIR)
 
+# option to use modified cyfxtx.c instead of
+# sdk provided default.
+ifeq ($(findstring cyfxtx.c, $(notdir $(SOURCE))),)
 SOURCE += $(FX3FWROOT)/fw_build/fx3_fw/cyfxtx.c
+endif
 SOURCE_ASM += $(FX3FWROOT)/fw_build/fx3_fw/cyfx_gcc_startup.S
 
 all:fx3_terminals.h compile
@@ -49,6 +53,13 @@ A_OBJECT:= $(addprefix $(BUILDDIR), $(SOURCE_ASM_ABS:%.S=%.o))
 
 
 EXES = $(MODULE).$(EXEEXT)
+
+CUSTOM_FX3LD ?= no
+
+ifneq ($(CUSTOM_FX3LD),no)
+# redefine the link command with the custom ld script.
+LDFLAGS := $(patsubst $(FX3FWROOT)/fw_build/fx3_fw/fx3_512k.ld, $(CUSTOM_FX3LD), $(LDFLAGS))
+endif
 
 $(MODULE).$(EXEEXT): $(A_OBJECT) $(C_OBJECT)
 	$(LINK)
