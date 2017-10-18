@@ -26,9 +26,16 @@ void GPIO_INTERRUPT (uint8_t);
 #endif
 
 #ifndef SS_INIT
-#define SS_INIT CyTrue
+CyBool_t glSSInit=CyTrue;
+#else
+CyBool_t glSSInit=SS_INIT;
 #endif
 
+
+#ifdef UXN1340
+// board specific mux for usb-c connector
+#define GPIO_USB3_SS_MUX 50
+#endif
 
 
 CyU3PThread NitroAppThread; /* Nitro application thread structure */
@@ -50,6 +57,7 @@ uint8_t glInterfaceAltSettings[NUM_INTERFACES] = {0};  /* Active USB interfaced.
 uint8_t *glSelBuffer = 0;               /* Buffer to hold SEL values.           */
 
 CyBool_t glIsApplnActive = CyFalse;     /* Whether the loopback application is active or not. */
+
 extern rdwr_cmd_t gRdwrCmd;
 
 CyU3PReturnStatus_t init_io();
@@ -113,6 +121,9 @@ void init_i2c() {
 void init_gpio (void) {
     CyU3PGpioClock_t gpioClock;
     CyU3PReturnStatus_t apiRetStatus = CY_U3P_SUCCESS;
+#ifdef UXN1340
+    CyU3PGpioSimpleConfig_t gpioConfig;
+#endif
 
     // TODO should these be registers in the fx3 term
     // that allow firmware to customize?
@@ -131,6 +142,19 @@ void init_gpio (void) {
       error_handler(apiRetStatus);
     }
     log_debug ( "GPIO block initialized\n");
+
+#ifdef UXN1340
+    apiRetStatus = CyU3PDeviceGpioOverride (GPIO_USB3_SS_MUX, CyTrue); // Start High
+    if (apiRetStatus) log_error ( "Fail to override usb3_ss_mux: %d\n", apiRetStatus);
+
+    gpioConfig.outValue = CyTrue;
+    gpioConfig.driveLowEn = CyTrue;
+    gpioConfig.driveHighEn = CyTrue;
+    gpioConfig.inputEn = CyFalse;
+    gpioConfig.intrMode = CY_U3P_GPIO_NO_INTR;
+    apiRetStatus = CyU3PGpioSetSimpleConfig(GPIO_USB3_SS_MUX, &gpioConfig);
+    if (apiRetStatus) log_error ( "Fail to config usb3_ss_mux: %d\n",apiRetStatus);
+#endif
 }
 
 /* This function starts the nitro application. This is called when a
@@ -783,6 +807,29 @@ CyBool_t CyFxNitroApplnLPMRqtCB (CyU3PUsbLinkPowerMode link_mode) {
   return CyTrue;
 }
 
+void init_usb() {
+    // should be called when usb is not connected or errors
+    CyU3PReturnStatus_t apiRetStatus=CyU3PUsbControlUsb2Support(!glSSInit);
+    if (apiRetStatus) log_error("Fail to set usb2 support to %d: %d\n", glSSInit?0:1,apiRetStatus);
+
+    apiRetStatus = CyU3PConnectState(CyTrue, glSSInit);
+#ifdef UXN1340
+    CyU3PUsbControlUsb2Support(CyTrue); // turn that back on in case we need it later
+    if (glSSInit && CyU3PUsbGetSpeed() != CY_U3P_SUPER_SPEED) {
+        log_info ( "First usb connect fail.\n");
+        CyU3PConnectState(CyFalse,CyFalse);
+        CyU3PGpioSetValue(GPIO_USB3_SS_MUX,0); // try the other way
+
+        apiRetStatus = CyU3PConnectState(CyTrue,CyTrue);
+    }
+#endif
+    if (apiRetStatus) {
+        log_error( "USB Connect failed: %d\n", apiRetStatus);
+        error_handler(apiRetStatus);
+    }
+    log_info ( "USB Connect state: %d\n", CyU3PUsbGetSpeed());
+}
+
 /* This function initializes the USB Module, sets the enumeration descriptors.
  * This function does not start the bulk streaming and this is done only when
  * SET_CONF event is received. */
@@ -847,11 +894,8 @@ void CyFxNitroApplnInit (void) {
     apiRetStatus = CyU3PUsbVBattEnable(CyTrue);
     apiRetStatus |= CyU3PUsbControlVBusDetect ( CyFalse, CyTrue );
     #endif
-    apiRetStatus = CyU3PConnectState(CyTrue, SS_INIT);
-    if (apiRetStatus != CY_U3P_SUCCESS) {
-      log_error( "USB Connect failed, Error code = %d\n", apiRetStatus);
-      error_handler(apiRetStatus);
-    }
+    init_usb();
+
   } else {
     /* USB connection is already active. Start the app again. */
     if (glIsApplnActive) {
@@ -888,7 +932,7 @@ void NitroDataThread_Entry (uint32_t input) {
 void NitroAppThread_Entry (uint32_t input) {
 
   CyU3PReturnStatus_t ret;
-  uint32_t eventMask = NITRO_EVENT_VENDOR_CMD|NITRO_EVENT_BREAK|NITRO_EVENT_REBOOT; // can add more events
+  uint32_t eventMask = NITRO_EVENT_VENDOR_CMD|NITRO_EVENT_BREAK|NITRO_EVENT_REBOOT|NITRO_EVENT_USB2; // can add more events
   uint32_t eventStat;
 
   /* Initialize the debug and other io modules module */
@@ -963,6 +1007,15 @@ void NitroAppThread_Entry (uint32_t input) {
             CyU3PDeviceReset(CyFalse); // cold boot from prom
             #endif
             // doesn't return
+        }
+
+        if (eventStat & NITRO_EVENT_USB2) {
+            // disconnect usb lines
+
+            CyU3PThreadSleep(500);
+            CyU3PConnectState(CyFalse,CyFalse);
+            init_usb();
+
         }
 
     }
