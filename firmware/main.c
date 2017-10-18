@@ -34,6 +34,7 @@ CyBool_t glSSInit=SS_INIT;
 
 #ifdef UXN1340
 // board specific mux for usb-c connector
+extern uint16_t cache_serial(); // so we don't have to get serial after mux is switched
 #define GPIO_USB3_SS_MUX 50
 #endif
 
@@ -809,15 +810,17 @@ CyBool_t CyFxNitroApplnLPMRqtCB (CyU3PUsbLinkPowerMode link_mode) {
 
 void init_usb() {
     // should be called when usb is not connected or errors
+#ifdef UXN1340
     CyU3PReturnStatus_t apiRetStatus=CyU3PUsbControlUsb2Support(!glSSInit);
     if (apiRetStatus) log_error("Fail to set usb2 support to %d: %d\n", glSSInit?0:1,apiRetStatus);
+#endif
 
     apiRetStatus = CyU3PConnectState(CyTrue, glSSInit);
 #ifdef UXN1340
-    CyU3PUsbControlUsb2Support(CyTrue); // turn that back on in case we need it later
     if (glSSInit && CyU3PUsbGetSpeed() != CY_U3P_SUPER_SPEED) {
         log_info ( "First usb connect fail.\n");
         CyU3PConnectState(CyFalse,CyFalse);
+        CyU3PUsbControlUsb2Support ( CyTrue );
         CyU3PGpioSetValue(GPIO_USB3_SS_MUX,0); // try the other way
 
         apiRetStatus = CyU3PConnectState(CyTrue,CyTrue);
@@ -855,6 +858,12 @@ void CyFxNitroApplnInit (void) {
     }
     ++i;
   }
+
+#ifdef UXN1340
+  // 1340 mux for usb3 gets broken if attempt to read/write to prom is made
+  // so cache the serial number.
+  cache_serial();
+#endif
 
   /* Start the USB functionality. */
   apiRetStatus = CyU3PUsbStart();
