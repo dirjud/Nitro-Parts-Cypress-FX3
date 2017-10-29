@@ -18,15 +18,31 @@ def get_dev(di_file="Cypress/fx3/fx3.xml", serial_num=None, bus_addr=None, VID=0
         try:
             if not(bus_addr is None):
                 dev.open_by_address(bus_addr)
+                break
             elif not(serial_num is None):
                 dev.open_by_serial(serial_num)
+                break
             else:
                 n=nitro.USBDevice.get_device_count(VID,PID)
                 if n<0:
                     log.info("Waiting for device with VID=0x%x PID=0x%x to connect" % (VID,PID))
+                    time.sleep(1)
                     continue
-                dev.open()
-            break
+                log.info("Found %d devices on bus with VID=0x%04x PID=0x%04x" % (n,VID,PID))
+                idx=0
+                for vid,pid,addr in dev.get_device_list(VID,PID):
+                    try:
+                        log.info("Trying to open device %d: ADDR=%d." % (idx, addr))
+                        dev.open_by_address(addr)
+                        break
+                    except nitro.Exception,e:
+                        log.info("Unable to open device %d. ADDR=%d. %s" % (idx, addr, e))
+                    idx += 1
+            if dev.is_open():
+                break
+            log.info("Unable to open any devices on bus.\n")
+            time.sleep(1)
+            continue
         except nitro.Exception:
             if not(bus_addr is None):
                 log.info("Waiting for device with VID=0x%x PID=0x%x BUS_ADDR=%d to connect" % (VID,PID,bus_addr))
