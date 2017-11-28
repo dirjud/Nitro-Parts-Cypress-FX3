@@ -60,10 +60,15 @@ CyU3PReturnStatus_t start_rdwr(uint16_t term_hint, uint16_t length_hint, rdwr_se
 
 CyBool_t handle_vendor_cmd(uint8_t  bRequest, uint8_t bReqType,
 			   uint8_t  bType, uint8_t bTarget,
-			   uint16_t wValue, uint16_t wIndex, 
+			   uint16_t wValue, uint16_t wIndex,
 			   uint16_t wLength);
 
 void rdwr_teardown();
+
+// this is an internal method used to get the serial number
+// it may return the cached serial number instead of doing a
+// fetch from the prom which is ideal in some circomstances.
+uint16_t rdwr_get_serial(uint8_t *);
 
 
 #endif

@@ -266,7 +266,7 @@ uint8_t gSerialNum[16];
   do { \
   int i; \
   for (i=0;i<16;i+=2) \
-    log_info ( "%c", glEp0Buffer[i] ); \
+    log_debug ( "%c", glEp0Buffer[i] ); \
   } while (0);
 #else
 #define log_serial()
@@ -275,12 +275,25 @@ uint8_t gSerialNum[16];
 uint16_t cache_serial() {
     uint16_t ret;
 
-    log_info ( "Return prom serial.." );
+    log_debug ( "Return prom serial.." );
     ret = get_serial(glEp0Buffer);
     if (ret) return ret;
     log_serial();
     CyU3PMemCopy(gSerialNum,glEp0Buffer,16);
     gSerialCached=CyTrue;
+    return 0;
+}
+//
+// internal method for retrieving serial number which may be cached
+uint16_t rdwr_get_serial(uint8_t *buf) {
+    CyU3PReturnStatus_t status;
+    if (!gSerialCached) {
+        status=cache_serial();
+        if (!status) return status;
+    }
+    CyU3PMemCopy(buf,gSerialNum,16);
+    log_debug ( "Return cached serial.." );
+    log_serial();
     return 0;
 }
 
@@ -296,13 +309,8 @@ CyU3PReturnStatus_t handle_serial_num(uint8_t bReqType, uint16_t wLength) {
 
   switch (bReqType) {
       case 0xc0: // get serial
-           if (gSerialCached) {
-               CyU3PMemCopy(glEp0Buffer,gSerialNum,16);
-               log_info ( "Return cached serial.." );
-               log_serial();
-           } else {
-               status = cache_serial(); // copies into glEp0Buffer and glSerialNum;               
-           }
+          status = rdwr_get_serial(glEp0Buffer);
+          if (status) return status;
 
             status = CyU3PUsbSendEP0Data(16, glEp0Buffer);
             if (status) {

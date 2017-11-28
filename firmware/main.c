@@ -509,6 +509,9 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
         case CY_U3P_USB_STRING_DESCR:
             index = wValue & 0xFF;
             buffer = (uint8_t*)CyFxUSBStringPtrs[index];
+            if (index == 3) {
+                rdwr_get_serial(buffer+2);
+            }
             length = buffer[0];
             break;
 
