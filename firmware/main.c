@@ -813,8 +813,9 @@ CyBool_t CyFxNitroApplnLPMRqtCB (CyU3PUsbLinkPowerMode link_mode) {
 
 void init_usb() {
     // should be called when usb is not connected or errors
+    CyU3PReturnStatus_t apiRetStatus; 
 #ifdef UXN1340
-    CyU3PReturnStatus_t apiRetStatus=CyU3PUsbControlUsb2Support(!glSSInit);
+    apiRetStatus=CyU3PUsbControlUsb2Support(!glSSInit);
     if (apiRetStatus) log_error("Fail to set usb2 support to %d: %d\n", glSSInit?0:1,apiRetStatus);
 #endif
 
