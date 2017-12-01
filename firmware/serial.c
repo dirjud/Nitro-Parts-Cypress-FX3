@@ -22,11 +22,10 @@ uint16_t set_serial(uint8_t* serial) {
     CyU3PReturnStatus_t status;
 
     preamble.length    = 3;
-    preamble.buffer[0] = TERM_FX3_PROM<<1;
+    preamble.buffer[0] = (TERM_FX3_PROM<<1)|8;
     preamble.buffer[1] = (uint8_t)(reg_addr >> 8);
     preamble.buffer[2] = (uint8_t)(reg_addr & 0xFF);
     preamble.ctrlMask  = 0x0000;
-
     status = CyU3PI2cTransmitBytes(&preamble, serial, 16, 1);
     if(status) {
         log_error("Error writing serial num to I2C (%d)\n", status);
@@ -45,7 +44,7 @@ uint16_t get_serial(uint8_t* buf) {
     CyU3PReturnStatus_t status;
 
     preamble.length    = 4;
-    preamble.buffer[0] = TERM_FX3_PROM<<1;
+    preamble.buffer[0] = (TERM_FX3_PROM<<1)|8;
     preamble.buffer[1] = (uint8_t)(reg_addr >> 8);
     preamble.buffer[2] = (uint8_t)(reg_addr & 0xFF);
     preamble.buffer[3] = (TERM_FX3_PROM<<1)|1;
