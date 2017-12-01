@@ -47,7 +47,7 @@ uint16_t get_serial(uint8_t* buf) {
     preamble.buffer[0] = (TERM_FX3_PROM<<1)|8;
     preamble.buffer[1] = (uint8_t)(reg_addr >> 8);
     preamble.buffer[2] = (uint8_t)(reg_addr & 0xFF);
-    preamble.buffer[3] = (TERM_FX3_PROM<<1)|1;
+    preamble.buffer[3] = (TERM_FX3_PROM<<1)|9;
     preamble.ctrlMask  = 0x0004;
     status = CyU3PI2cReceiveBytes (&preamble, buf, 16, 1);
     if(status) {
