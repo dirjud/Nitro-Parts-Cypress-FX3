@@ -56,7 +56,7 @@ const uint8_t CyFxUSB30DeviceDscr[] __attribute__ ((aligned (32))) =
     0x00,0x04,                      /* Device release number */
     0x01,                           /* Manufacture string index */
     0x02,                           /* Product string index */
-    0x00,                           /* Serial number string index */
+    0x03,                           /* Serial number string index */
     0x01                            /* Number of configurations */
 };
 
@@ -75,7 +75,7 @@ const uint8_t CyFxUSB20DeviceDscr[] __attribute__ ((aligned (32))) =
     0x00,0x04,                      /* Device release number */
     0x01,                           /* Manufacture string index */
     0x02,                           /* Product string index */
-    0x00,                           /* Serial number string index */
+    0x03,                           /* Serial number string index */
     0x01                            /* Number of configurations */
 };
 
@@ -321,11 +321,28 @@ const uint8_t CyFxUSBProductDscr[] __attribute__ ((aligned (32))) =
     '3',0x00
 };
 
+/* Standard product string descriptor */
+const uint8_t CyFxUSBProductSerial[] __attribute__ ((aligned (32))) =
+{
+    0x12,                           /* Descriptor size */
+    CY_U3P_USB_STRING_DESCR,        /* Device descriptor type */
+    '0',0x00,
+    '0',0x00,
+    '0',0x00,
+    '0',0x00,
+    '0',0x00,
+    '0',0x00,
+    '0',0x00,
+    '0',0x00
+};
+
+
 /* list all strings in order for main.c to serve them up */
 const uint8_t* CyFxUSBStringPtrs[] = {
     CyFxUSBStringLangIDDscr,
     CyFxUSBManufactureDscr,
-    CyFxUSBProductDscr
+    CyFxUSBProductDscr,
+    CyFxUSBProductSerial
 };
 
 /* Place this buffer as the last buffer so that no other variable / code shares
