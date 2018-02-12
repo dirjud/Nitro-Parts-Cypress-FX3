@@ -970,12 +970,8 @@ void NitroAppThread_Entry (uint32_t input) {
      // io48_val = !io48_val;
 
      CyU3PSysWatchDogClear();
-     //slfifo_checkdone();
-     // TODO put this in the mail_loop_cb
-     // ok for other main loop cb not to have rdwr_done?
 
-     if (gRdwrCmd.done) {// ensures main thread mutex unlocked
-         RDWR_DONE(CyTrue);
+     {
          int i=0;
          while ( app_init[i].type != 0 ) {
            if (app_init[i].main_loop_cb) app_init[i].main_loop_cb();
