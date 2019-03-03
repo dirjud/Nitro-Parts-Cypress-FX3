@@ -35,7 +35,7 @@ def get_dev(di_file="Cypress/fx3/fx3.xml", serial_num=None, bus_addr=None, VID=0
                         log.info("Trying to open device %d: ADDR=%d." % (idx, addr))
                         dev.open_by_address(addr)
                         break
-                    except nitro.Exception,e:
+                    except nitro.Exception as e:
                         log.info("Unable to open device %d. ADDR=%d. %s" % (idx, addr, e))
                     idx += 1
             if dev.is_open():
@@ -83,7 +83,7 @@ def program_fx3(dev, filename):
     """
     log.info("Programming FX3 with img file %s" % filename)
     f=open(filename,'rb').read()
-#    print type(dev)
+#    print(type(dev))
 #    dev=nitro.USBDevice(dev) # ensure load_firmware available
     dev.load_firmware ( f )
     log.info ("Firmware loaded, device automatically closed." )
@@ -125,7 +125,7 @@ def read_log(dev):
             #print buf[0], # level
             buf=buf[1:]
             i=numpy.where(buf == 0)[0][0]
-            print struct.unpack("%ds" % i, buf[:i])[0],
+            print(struct.unpack("%ds" % i, buf[:i])[0],)
             buf=buf[i+1:]
 
 
