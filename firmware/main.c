@@ -898,7 +898,11 @@ void CyFxNitroApplnInit (void) {
     /* Connect the USB Pins with super speed operation enabled. */
     //apiRetStatus = CyU3PUsbSetTxSwing(127); // per Cypress tech phyerr doc
     //log_debug ( "Tx Swing ret: %d\n" , apiRetStatus );
-    #ifdef CX3
+    #if 1 // def CX3
+    // NOTE on new 1340 boards, VBat is exposed and 
+    // this API can be used to allow the 1340 board to connect
+    // to an iPad with lower than 5V usb line voltage.
+
     // ON THE CX3, the power input is the same as the batt input.
     // if we have lower voltage than 5v (iPhone) the usb bus won't
     // turn on without enabling the batt input.
