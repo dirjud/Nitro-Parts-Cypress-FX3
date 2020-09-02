@@ -87,6 +87,7 @@ extern CyU3PEvent glThreadEvent;       /* event to cause app thread to wake up *
 #define NITRO_EVENT_USB2         (1<<4) /* glSSInit changed */ 
 
 extern uint8_t glUsbConfiguration;
+extern CyBool_t glIsApplnActive;
 
 #include "cyu3externcend.h"
 

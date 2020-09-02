@@ -58,6 +58,7 @@ CUSTOM_FX3LD ?= no
 
 ifneq ($(CUSTOM_FX3LD),no)
 # redefine the link command with the custom ld script.
+# TODO - fx3_512k vs fx3_256k.. 1330/1340 boards have 256k parts 
 LDFLAGS := $(patsubst $(FX3FWROOT)/fw_build/fx3_fw/fx3_512k.ld, $(CUSTOM_FX3LD), $(LDFLAGS))
 endif
 
