@@ -118,6 +118,7 @@ def program_new_pcb(fx3_firmware, VID, PID, di_file, fx3_prom_term='FX3_PROM'):
 
 def read_log(dev):
     c=dev.get('LOG','count')
+    s=''
     if c:
         buf=numpy.zeros(c,dtype=numpy.uint8)
         dev.read('LOG','log',buf)
@@ -125,7 +126,9 @@ def read_log(dev):
             #print buf[0], # level
             buf=buf[1:]
             i=numpy.where(buf == 0)[0][0]
-            print(struct.unpack("%ds" % i, buf[:i])[0],)
+            l=struct.unpack("%ds" % i, buf[:i])[0].decode('ascii')
+            print(l)
+            s = "%s%s" % (s, l)
             buf=buf[i+1:]
 
-
+    return s
