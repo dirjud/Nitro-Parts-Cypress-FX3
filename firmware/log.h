@@ -28,7 +28,7 @@ void logging_boot();
 #ifdef USB_LOGGING
 
 // treat logging as usb pipe instead of over UART
-#define LOG_BUFFER_SIZE 2048
+#define LOG_BUFFER_SIZE (1024*12)
 #define LOG_STMT_MAX 100
 
 
@@ -39,9 +39,9 @@ uint16_t log_read(CyU3PDmaBuffer_t*);
 void log_stmt2(unsigned LEVEL, const uint8_t* stmt);
 
 #define log_stmt(LEVEL,X,...) do { \
-  uint8_t tmp[LOG_STMT_MAX]; \
-  if (!CyU3PDebugStringPrint(tmp,LOG_BUFFER_SIZE,X, ##__VA_ARGS__)) { \
-    log_stmt2(LEVEL,tmp); \
+  uint8_t tmp_log_buf[LOG_STMT_MAX]; \
+  if (!CyU3PDebugStringPrint(tmp_log_buf,LOG_STMT_MAX, X, ##__VA_ARGS__)) { \
+    log_stmt2(LEVEL,tmp_log_buf); \
   } \
 } while (0)
 
