@@ -437,7 +437,7 @@ CyFxUsbHandleSetFeature (
 CyU3PReturnStatus_t
 CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
 {
-    uint16_t length = 0, index = 0;
+    uint16_t length = 0;
     uint8_t *buffer = NULL;
     uint8_t dscrType = wValue>>8;
     uint8_t dscrIdx = wValue&0xff;
@@ -452,10 +452,12 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
             if (usbSpeed == CY_U3P_SUPER_SPEED)
             {
                 buffer = (uint8_t *)CyFxUSB30DeviceDscr;
+                log_debug ( "usb30DeviceDescr\n" );
             }
             else
             {
                 buffer = (uint8_t *)CyFxUSB20DeviceDscr;
+                log_debug ( "usb20DeviceDscr\n" );
             }
             length = buffer[0];
             break;
@@ -463,25 +465,30 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
         case CY_U3P_BOS_DESCR:
             buffer = (uint8_t *)CyFxUSBBOSDscr;
             length = (buffer[2] | ((uint16_t)buffer[3] << 8));
+            log_debug ( "USBBOSDscr\n" );
             break;
 
         case CY_U3P_USB_DEVQUAL_DESCR:
             buffer = (uint8_t *)CyFxUSBDeviceQualDscr;
             length = buffer[0];
+            log_debug ( "USBDeviceQualDscr\n" );
             break;
 
         case CY_U3P_USB_CONFIG_DESCR:
             if (usbSpeed == CY_U3P_SUPER_SPEED)
             {
                 buffer = CyFxUSBSSConfigDscr[dscrIdx];
+                log_debug ( "USBSSConfigDscr[%d]\n", dscrIdx );
             }
             else if (usbSpeed == CY_U3P_HIGH_SPEED)
             {
                 buffer = CyFxUSBHSConfigDscr[dscrIdx];
+                log_debug ( "USBHSConfigDscr[%d]\n", dscrIdx );
             }
             else /* CY_U3P_FULL_SPEED */
             {
                 buffer = CyFxUSBFSConfigDscr[dscrIdx];
+                log_debug ( "USBFSConfigDscr[%d]\n", dscrIdx );
             }
             length = (buffer[2] | ((uint16_t)buffer[3] << 8));
             break;
@@ -490,10 +497,12 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
             if (usbSpeed == CY_U3P_HIGH_SPEED)
             {
                 buffer = CyFxUSBFSConfigDscr[dscrIdx];
+                log_debug ( "Other speed: usbFSConfigDscr[%d]\n", dscrIdx );
             }
             else if (usbSpeed == CY_U3P_FULL_SPEED)
             {
                 buffer = CyFxUSBHSConfigDscr[dscrIdx];
+                log_debug ( "Other speed: usbHSConfigDscr[%d]\n", dscrIdx );
             }
             else
             {
@@ -507,12 +516,12 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
             break;
 
         case CY_U3P_USB_STRING_DESCR:
-            index = wValue & 0xFF;
-            buffer = (uint8_t*)CyFxUSBStringPtrs[index];
-            if (index == 3) {
+            buffer = (uint8_t*)CyFxUSBStringPtrs[dscrIdx];
+            if (dscrIdx == 3) {
                 rdwr_get_serial(buffer+2);
             }
             length = buffer[0];
+            log_debug ( "USBStringPtrs[%d]\n", dscrIdx ); 
             break;
 
         default:
@@ -526,10 +535,12 @@ CyFxUsbSendDescriptor (uint16_t wValue, uint16_t wIndex, uint16_t wLength)
          * and the requested length. */
         length = (wLength < length) ? wLength : length;
         status = CyU3PUsbSendEP0Data (length, buffer);
+        log_debug ( "Descriptor send ep0 data actual length: %d status: %d\n", length, status );
     }
     else
     {
         status = CY_U3P_ERROR_FAILURE;
+        log_error ("Descriptor send error no buffer.\n" );
     }
 
     return status;
@@ -542,7 +553,13 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
   CyBool_t isHandled = CyTrue;
   CyU3PReturnStatus_t status = CY_U3P_SUCCESS;
 
-  log_debug( "Entering handle_standard_setup_cmd (%d)\n", bRequest);
+  log_debug( "Entering handle_standard_setup_cmd: \n\tRequest: %d\n"
+               "\tType: %d\n"
+               "\tTarget: %d\n"
+               "\tValue: %d\n"
+               "\tIndex: %d\n"
+               "\tLength: %d\n"
+               , bRequest, bType, bTarget, wValue, wIndex, wLength);
 
   /* Identify and handle setup request. */
   switch (bRequest) {
@@ -589,6 +606,7 @@ CyBool_t handle_standard_setup_cmd(uint8_t  bRequest, uint8_t bReqType,
 
     /* Return the requested descriptor. */
   case CY_U3P_USB_SC_GET_DESCRIPTOR:
+    log_debug ( "Get Descriptor v, i l: %d, %d, %d\n", wValue, wIndex, wLength );
     status = CyFxUsbSendDescriptor (wValue, wIndex, wLength);
     break;
 
@@ -898,7 +916,7 @@ void CyFxNitroApplnInit (void) {
     /* Connect the USB Pins with super speed operation enabled. */
     //apiRetStatus = CyU3PUsbSetTxSwing(127); // per Cypress tech phyerr doc
     //log_debug ( "Tx Swing ret: %d\n" , apiRetStatus );
-    #ifndef NOVBAT_EN
+    #ifdef VBAT_EN
     // NOTE on new 1340 boards, VBat is exposed and 
     // this API can be used to allow the 1340 board to connect
     // to an iPad with lower than 5V usb line voltage.
